@@ -20,12 +20,15 @@ def _database_url() -> str:
     return url
 
 
+def _origins(value: str) -> list[str]:
+    # Browsers send an origin with no trailing slash, so "https://site.app/" would never match.
+    return [item.strip().rstrip("/") for item in value.split(",") if item.strip().rstrip("/")]
+
+
 @dataclass(frozen=True)
 class Settings:
     database_url: str = field(default_factory=_database_url)
-    cors_origins: list[str] = field(
-        default_factory=lambda: [item.strip() for item in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",") if item.strip()]
-    )
+    cors_origins: list[str] = field(default_factory=lambda: _origins(os.getenv("CORS_ORIGINS") or "http://localhost:5173"))
     environment: str = field(default_factory=lambda: os.getenv("ENVIRONMENT", "development"))
     # Demo data is clearly labelled wherever it is shown. Turn it off for a real launch.
     seed_demo_data: bool = field(default_factory=lambda: _flag("SEED_DEMO_DATA", True))

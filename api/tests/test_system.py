@@ -104,3 +104,12 @@ def test_every_state_changing_route_requires_sign_in():
                 open_writes.add(route.path)
     assert count >= 80
     assert open_writes == {"/auth/register", "/auth/login", "/auth/demo", "/auth/logout"}
+
+
+def test_cors_origins_tolerate_trailing_slashes_and_spaces(monkeypatch):
+    from app.config import Settings
+
+    monkeypatch.setenv("CORS_ORIGINS", " https://courtmate.example/ , http://localhost:5173,, ")
+    assert Settings().cors_origins == ["https://courtmate.example", "http://localhost:5173"]
+    monkeypatch.setenv("CORS_ORIGINS", "")
+    assert Settings().cors_origins == ["http://localhost:5173"]
