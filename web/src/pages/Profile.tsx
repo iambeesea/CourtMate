@@ -1,4 +1,4 @@
-import { Bell, CircleUserRound, LogOut, MapPin, Pencil, UsersRound } from 'lucide-react'
+import { Bell, Building2, CircleUserRound, LogOut, MapPin, Pencil, ShieldCheck, UsersRound } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { CityPicker } from '../components/CityPicker'
@@ -102,6 +102,22 @@ export function Profile() {
             <span>Clubs and groups you play with</span>
           </div>
         </Link>
+        <Link to="/operator" className="link-row">
+          <Building2 size={20} />
+          <div>
+            <strong>Venue dashboard</strong>
+            <span>{user.managedFacilityIds.length ? `Manage ${user.managedFacilityIds.length === 1 ? 'your venue' : `your ${user.managedFacilityIds.length} venues`}` : 'Run a court, field or studio? List it here'}</span>
+          </div>
+        </Link>
+        {user.role === 'admin' && (
+          <Link to="/admin" className="link-row">
+            <ShieldCheck size={20} />
+            <div>
+              <strong>Venue verification</strong>
+              <span>Review venues waiting to be listed</span>
+            </div>
+          </Link>
+        )}
         <Link to="/notifications" className="link-row">
           <Bell size={20} />
           <div>

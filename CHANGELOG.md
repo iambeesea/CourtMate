@@ -4,6 +4,21 @@ All notable changes to CourtMate are recorded here. Dates are in Philippine time
 
 ## [Unreleased] — `feat/courtmate-multisport`
 
+### Phase 5 — Facility management (2026-10-08)
+
+Added
+
+- Facility operator API under `/api/v1/operator`: registration, details and booking rules, opening hours, bookable spaces and sections, day schedule, time blocks, reservation lists, accept/decline/cancel, and an occupancy report.
+- Administrator verification: `/api/v1/admin/facilities` review queue and `/api/v1/admin/facilities/{id}/verification`.
+- Notifications between venues and customers for requests, decisions and cancellations.
+- Web: venue dashboard (`/operator`), venue verification (`/admin`), demo admin sign-in.
+- 16 more API tests (154 in total).
+
+Security
+
+- Operator routes answer 404 to anyone who is not staff at that facility, so facility and reservation ids cannot be probed.
+- Operator contact details and verification notes never appear in public responses (covered by tests).
+
 ### Phase 4 — Communities and statistics (2026-10-08)
 
 Added

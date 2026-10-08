@@ -10,7 +10,7 @@ Branch `feat/courtmate-multisport`. Updated at the end of each phase. Design is 
 | 2 | Universal sports foundation | Done |
 | 3 | Open plays | Done |
 | 4 | Communities and statistics | Done |
-| 5 | Facility management | Not started |
+| 5 | Facility management | Done |
 | 6 | Mobile and production | Not started |
 
 ## Phase 2 — Universal sports foundation
@@ -79,6 +79,29 @@ Branch `feat/courtmate-multisport`. Updated at the end of each phase. Design is 
 - Notification bell with unread count and a notifications page.
 - The original MVP screens and their bundled demo figures are gone.
 
+## Phase 5 — Facility management
+
+**API** (`/api/v1/operator/*`, staff of the facility only; everyone else receives 404)
+
+- Register a facility. It starts `pending`: private, unlisted and unbookable until an administrator verifies it.
+- Edit details, private contact information and booking rules; replace the weekly opening hours.
+- Add and edit bookable spaces, set prices and booking lengths, take a space off sale, and divide a space into sections (half courts, pool lanes). A space with bookings held against it cannot be divided until they are finished.
+- Day schedule for every space, including before verification.
+- Block time for maintenance or private use; blocking fails if a booking is in the way.
+- Reservation lists (requests, upcoming, history, blocks); accept or decline requests; cancel a booking from the venue side with a reason.
+- Occupancy report per bookable unit over a date range: open, booked and blocked time, booking counts, and booked value at listed rates.
+- Notifications both ways: the venue hears about new requests and customer cancellations; the customer hears about confirmations, declines and venue cancellations.
+
+**Administration** (`/api/v1/admin/facilities`): review queue by status with the operator's contact details, and verify, reject or suspend. The owner is notified.
+
+**Web**
+
+- Venue dashboard at `/operator`: registration form, and per venue an overview, bookings, schedule, spaces, hours and rules, and details.
+- Verification screen at `/admin` for administrators.
+- Links from Profile.
+
+Operator contact details and verification notes are returned only by the operator and admin routes; a test asserts they are absent from the public facility responses.
+
 ## How to run
 
 ```bash
@@ -93,14 +116,14 @@ Open <http://localhost:5173>. "Sign in → Demo player" needs no password.
 
 ## Checks
 
-| Check | Command | Latest result (end of phase 4) |
+| Check | Command | Latest result (end of phase 5) |
 | --- | --- | --- |
-| API tests | `cd api && uv run pytest` | 138 passed |
+| API tests | `cd api && uv run pytest` | 154 passed |
 | API lint and format | `uv run ruff check . && uv run ruff format --check .` | Clean |
 | Web type check and build | `cd web && npm run build` | Clean |
 | Web lint | `npm run lint` | Clean |
 | Web unit tests | `npm test` | 9 passed (also with `TZ=America/New_York`) |
-| Browser walk-through | Explore → venue → pick slots → demo sign-in → confirm → Bookings; location filter on a phone-sized viewport; session page → check in to the live queue; host form for running and badminton; player record, share card and Communities | Worked |
+| Browser walk-through | Explore → venue → pick slots → demo sign-in → confirm → Bookings; location filter on a phone-sized viewport; session page → check in to the live queue; host form for running and badminton; player record, share card and Communities; venue dashboard → accept a booking request | Worked |
 
 ## Known limitations
 
@@ -109,7 +132,10 @@ Open <http://localhost:5173>. "Sign in → Demo player" needs no password.
 - **Email addresses are not verified** and there is no password reset. Both need an email provider.
 - **Access tokens are kept in `localStorage`.** That is simple and works across the separate web and API hosts, but any script injected into the page could read the token. Moving the API behind the web origin and using an HttpOnly cookie is the stronger setup.
 - **Rate limiting is per process** and keyed on the connecting address. Behind a proxy the API needs forwarded headers enabled to see real client addresses, and more than one instance needs a shared store.
-- **No online payments.** Reservations record "pay at venue".
+- **No online payments.** Reservations record "pay at venue". The dashboard's "booked value" is bookings at listed rates, not money received.
+- **Facility verification is a manual decision** by an administrator. There is no document upload, and the first administrator account has to be created outside the app (see Deployment).
+- **One operator account per facility in the web UI.** The schema has staff roles (owner, manager), but there is no screen for inviting staff.
+- **Venue photos** can be stored as HTTPS links through the API; there is no upload.
 - **Results are trusted as entered.** A match score is recorded by the host or one of its players, and activities are self-reported; there is no second confirmation or dispute step.
 - **Notifications are in-app only** and the badge refreshes once a minute. There is no push or email.
 - **Private communities have no invitation flow yet**; the API supports them, the web only creates public ones.

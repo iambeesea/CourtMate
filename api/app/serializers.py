@@ -463,3 +463,33 @@ def activity(item: ActivityLog) -> schemas.ActivityOut:
         note=item.note,
         is_demo=item.is_demo,
     )
+
+
+# --- operators and administrators ---------------------------------------------
+
+
+def _operator_fields(db: Session, facility: Facility, pending_requests: int) -> dict:
+    staff_users = {user.id: user for user in db.scalars(select(User).where(User.id.in_([entry.user_id for entry in facility.staff]))).all()}
+    return {
+        **facility_detail(facility, include_inactive=True).model_dump(),
+        "contact_name": facility.contact_name,
+        "contact_email": facility.contact_email,
+        "contact_phone": facility.contact_phone,
+        "verification_notes": facility.verification_notes,
+        "staff": [
+            schemas.StaffOut(user=public_user(staff_users[entry.user_id]), role=entry.role)
+            for entry in facility.staff
+            if entry.user_id in staff_users
+        ],
+        "pending_requests": pending_requests,
+    }
+
+
+def operator_facility(db: Session, facility: Facility, pending_requests: int = 0) -> schemas.OperatorFacility:
+    return schemas.OperatorFacility(**_operator_fields(db, facility, pending_requests))
+
+
+def admin_facility(db: Session, facility: Facility) -> schemas.AdminFacility:
+    return schemas.AdminFacility(
+        **_operator_fields(db, facility, 0), owner=public_user(db.get(User, facility.owner_user_id)), created_at=facility.created_at
+    )

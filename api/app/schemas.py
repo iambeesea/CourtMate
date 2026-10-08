@@ -779,3 +779,142 @@ class NotificationList(ApiModel):
 
 class MarkReadIn(ApiModel):
     ids: list[str] | None = Field(default=None, max_length=200)
+
+
+# --- facility operators -------------------------------------------------------
+
+Phone = Annotated[str, StringConstraints(strip_whitespace=True, max_length=40, pattern=r"^[0-9+()\-\s]*$")]
+
+
+class FacilityIn(ApiModel):
+    name: str = Field(min_length=3, max_length=160)
+    description: LongText = ""
+    address_line: str = Field(default="", max_length=255)
+    city_code: str
+    barangay_code: str | None = None
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
+    amenities: list[ShortText] = Field(default=[], max_length=30)
+    sport_ids: list[str] = Field(min_length=1, max_length=40)
+    contact_name: str = Field(min_length=2, max_length=120)
+    contact_email: EmailStr
+    contact_phone: Phone = ""
+
+    @model_validator(mode="after")
+    def _coordinates(self):
+        if (self.latitude is None) != (self.longitude is None):
+            raise ValueError("provide both latitude and longitude, or neither")
+        return self
+
+
+class FacilityPatch(ApiModel):
+    name: str | None = Field(default=None, min_length=3, max_length=160)
+    description: LongText | None = None
+    address_line: str | None = Field(default=None, max_length=255)
+    city_code: str | None = None
+    barangay_code: str | None = None
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
+    amenities: list[ShortText] | None = Field(default=None, max_length=30)
+    photos: list[Photo] | None = Field(default=None, max_length=12)
+    sport_ids: list[str] | None = Field(default=None, min_length=1, max_length=40)
+    contact_name: str | None = Field(default=None, min_length=2, max_length=120)
+    contact_email: EmailStr | None = None
+    contact_phone: Phone | None = None
+    # Booking rules
+    requires_approval: bool | None = None
+    min_notice_minutes: int | None = Field(default=None, ge=0, le=60 * 24 * 14)
+    max_advance_days: int | None = Field(default=None, ge=1, le=365)
+    cancellation_window_hours: int | None = Field(default=None, ge=0, le=24 * 30)
+    min_booking_minutes: int | None = Field(default=None, ge=15, le=24 * 60)
+    max_booking_minutes: int | None = Field(default=None, ge=15, le=24 * 60)
+
+
+class HoursIn(ApiModel):
+    weekday: int = Field(ge=0, le=6)
+    open_minute: int = Field(ge=0, le=1425, multiple_of=15)
+    close_minute: int = Field(ge=15, le=1440, multiple_of=15)
+
+    @model_validator(mode="after")
+    def _ordered(self):
+        if self.close_minute <= self.open_minute:
+            raise ValueError("closing time must be after opening time")
+        return self
+
+
+class ResourceIn(ApiModel):
+    name: str = Field(min_length=1, max_length=120)
+    resource_type_id: str
+    sport_ids: list[str] = Field(min_length=1, max_length=20)
+    description: LongText = ""
+    capacity: int = Field(default=4, ge=1, le=5000)
+    slot_minutes: int = Field(default=60, ge=15, le=24 * 60, multiple_of=15)
+    hourly_rate_centavos: int = Field(default=0, ge=0, le=MAX_FEE_CENTAVOS)
+    parent_id: str | None = None
+
+
+class ResourcePatch(ApiModel):
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    sport_ids: list[str] | None = Field(default=None, min_length=1, max_length=20)
+    description: LongText | None = None
+    capacity: int | None = Field(default=None, ge=1, le=5000)
+    slot_minutes: int | None = Field(default=None, ge=15, le=24 * 60, multiple_of=15)
+    hourly_rate_centavos: int | None = Field(default=None, ge=0, le=MAX_FEE_CENTAVOS)
+    is_active: bool | None = None
+
+
+class BlockIn(ApiModel):
+    start_at: AwareDatetime
+    end_at: AwareDatetime
+    reason: str = Field(default="", max_length=300)
+
+
+class StaffOut(ApiModel):
+    user: PublicUser
+    role: str
+
+
+class OperatorFacility(FacilityDetail):
+    """Everything the operator can see, including fields that are never public."""
+
+    contact_name: str
+    contact_email: str
+    contact_phone: str
+    verification_notes: str
+    staff: list[StaffOut]
+    pending_requests: int
+
+
+class ResourceOccupancy(ApiModel):
+    resource_id: str
+    name: str
+    open_minutes: int
+    booked_minutes: int
+    blocked_minutes: int
+    occupancy_percent: float
+
+
+class OccupancyOut(ApiModel):
+    facility_id: str
+    date_from: dt.date
+    date_to: dt.date
+    open_minutes: int
+    booked_minutes: int
+    blocked_minutes: int
+    occupancy_percent: float
+    confirmed_bookings: int
+    pending_bookings: int
+    cancelled_bookings: int
+    # Value of confirmed bookings at listed rates. Not a record of money received.
+    booked_value_centavos: int
+    resources: list[ResourceOccupancy]
+
+
+class VerificationIn(ApiModel):
+    status: Literal["verified", "rejected", "suspended", "pending"]
+    notes: str = Field(default="", max_length=1000)
+
+
+class AdminFacility(OperatorFacility):
+    owner: PublicUser
+    created_at: dt.datetime

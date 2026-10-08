@@ -6,15 +6,20 @@ from sqlalchemy.orm import Session
 
 from .. import schemas, serializers
 from ..db import get_db
-from ..models import Reservation, Resource, User
+from ..models import FacilityStaff, Reservation, Resource, User
 from ..security import current_user, staff_role
 from ..services import booking
+from ..services.notifications import notify_many
 from ..timeutil import to_utc, utcnow
 
 router = APIRouter(prefix="/reservations", tags=["reservations"])
 
 # Stops one account from holding a venue's whole calendar.
 MAX_ACTIVE_BOOKINGS = 20
+
+
+def _staff_ids(db: Session, facility_id: str) -> list[str]:
+    return list(db.scalars(select(FacilityStaff.user_id).where(FacilityStaff.facility_id == facility_id)).all())
 
 
 def booking_error(error: booking.BookingError) -> HTTPException:
@@ -63,6 +68,16 @@ def create_reservation(payload: schemas.ReservationIn, user: User = Depends(curr
             repeat_weeks=payload.repeat_weeks,
             now=now,
         )
+        if reservations[0].status == "pending":
+            notify_many(
+                db,
+                _staff_ids(db, resource.facility_id),
+                "booking_request",
+                "New booking request",
+                f"{user.display_name} asked for {resource.name}."
+                + (f" {len(reservations)} weekly dates." if len(reservations) > 1 else ""),
+                f"/operator/{resource.facility_id}",
+            )
         db.commit()
     except booking.BookingError as error:
         db.rollback()
@@ -103,6 +118,15 @@ def cancel_reservation(
     reservation = _visible_reservation(db, reservation_id, user)
     try:
         booking.cancel(db, reservation, by=user, reason=(payload.reason if payload else "").strip())
+        if user.id == reservation.organizer_user_id:
+            notify_many(
+                db,
+                _staff_ids(db, reservation.facility_id),
+                "booking_cancelled",
+                "Late cancellation" if reservation.late_cancellation else "Booking cancelled",
+                f"{user.display_name} cancelled {reservation.resource.name}.",
+                f"/operator/{reservation.facility_id}",
+            )
         db.commit()
     except booking.BookingError as error:
         db.rollback()

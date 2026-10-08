@@ -1,11 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Literal
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .. import schemas, serializers
 from ..db import get_db
-from ..models import ResourceType, Sport, SportCategory, User
+from ..models import Facility, ResourceType, Sport, SportCategory, User
 from ..security import require_admin
+from ..services.notifications import notify
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -58,3 +61,37 @@ def update_sport(sport_id: str, payload: schemas.SportPatch, _: User = Depends(r
     db.commit()
     db.refresh(sport)
     return serializers.sport(sport)
+
+
+@router.get("/facilities", response_model=list[schemas.AdminFacility])
+def list_facilities_for_review(
+    verification: Literal["pending", "verified", "rejected", "suspended"] = Query(default="pending", alias="status"),
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Facilities by verification status, oldest first, with the operator's contact details for review."""
+    rows = db.scalars(select(Facility).where(Facility.verification_status == verification).order_by(Facility.created_at)).unique()
+    return [serializers.admin_facility(db, facility) for facility in rows]
+
+
+@router.post("/facilities/{facility_id}/verification", response_model=schemas.AdminFacility)
+def set_facility_verification(
+    facility_id: str, payload: schemas.VerificationIn, _: User = Depends(require_admin), db: Session = Depends(get_db)
+):
+    """Verify, reject or suspend a facility. Only verified facilities are listed publicly and can take bookings."""
+    facility = db.get(Facility, facility_id)
+    if facility is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Facility not found.")
+    facility.verification_status = payload.status
+    facility.verification_notes = payload.notes.strip()
+    messages = {
+        "verified": ("Facility verified", f"{facility.name} is now listed and can take bookings."),
+        "rejected": ("Facility not verified", f"{facility.name} was not verified. {payload.notes}".strip()),
+        "suspended": ("Facility suspended", f"{facility.name} has been taken off the listings. {payload.notes}".strip()),
+        "pending": ("Facility under review", f"{facility.name} is being reviewed again."),
+    }
+    title, body = messages[payload.status]
+    notify(db, facility.owner_user_id, f"facility_{payload.status}", title, body, f"/operator/{facility.id}")
+    db.commit()
+    db.refresh(facility)
+    return serializers.admin_facility(db, facility)

@@ -5,12 +5,14 @@ import { AuthDialog } from './components/AuthDialog'
 import { LocationPicker } from './components/LocationPicker'
 import { Shell } from './components/Shell'
 import { EmptyState } from './components/StateViews'
+import { Admin } from './pages/Admin'
 import { Bookings } from './pages/Bookings'
 import { Communities } from './pages/Communities'
 import { CommunityPage } from './pages/CommunityPage'
 import { Explore } from './pages/Explore'
 import { HostSession } from './pages/HostSession'
 import { Notifications } from './pages/Notifications'
+import { OperatorFacilityPage, OperatorHome } from './pages/Operator'
 import { Play } from './pages/Play'
 import { Profile } from './pages/Profile'
 import { SessionPage } from './pages/SessionPage'
@@ -65,6 +67,9 @@ export default function App() {
         <Route path="/communities/:id" element={<CommunityPage />} />
         <Route path="/teams/:id" element={<TeamPage />} />
         <Route path="/notifications" element={<Notifications />} />
+        <Route path="/operator" element={<OperatorHome />} />
+        <Route path="/operator/:id" element={<OperatorFacilityPage />} />
+        <Route path="/admin" element={<Admin />} />
         <Route path="/record" element={<Navigate to="/profile" replace />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="*" element={<NotFound />} />

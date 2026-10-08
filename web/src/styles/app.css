@@ -1875,3 +1875,166 @@ a.session-title-row {
     font-size: 10px;
   }
 }
+
+/* --- operator dashboard ----------------------------------------------------- */
+.operator-tabs {
+  margin-top: 22px;
+}
+.operator-tabs button b {
+  background: var(--lime);
+  color: var(--navy);
+  border-radius: 999px;
+  padding: 1px 7px;
+  font-size: 11px;
+}
+.operator-section {
+  display: grid;
+  gap: 18px;
+}
+.operator-section > .segmented {
+  justify-self: start;
+}
+.operator-form {
+  max-width: 720px;
+}
+.stat-card-link {
+  text-align: left;
+  border: 1px solid var(--navy);
+  cursor: pointer;
+}
+.occupancy-list {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  padding: 8px 18px;
+}
+.occupancy-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) 2fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+.occupancy-row:last-child {
+  border-bottom: 0;
+}
+.occupancy-row small {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.occupancy-bar {
+  height: 10px;
+  border-radius: 6px;
+  background: var(--gray);
+  display: flex;
+  overflow: hidden;
+}
+.occupancy-bar span {
+  background: var(--navy);
+}
+.occupancy-bar i {
+  background: repeating-linear-gradient(135deg, #b9c0cc 0 4px, #d5dae2 4px 8px);
+}
+.block-form,
+.private-fields {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 16px;
+  padding: 18px;
+  margin: 0;
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  justify-items: start;
+}
+.block-form > .field-pair,
+.private-fields > * {
+  width: 100%;
+}
+.block-form legend,
+.private-fields legend {
+  font: 800 13px "DM Sans";
+  letter-spacing: 0.6px;
+  color: var(--muted);
+  padding: 0 6px;
+}
+.private-fields {
+  background: var(--navy-soft);
+  border-color: transparent;
+}
+.hours-row {
+  display: grid;
+  grid-template-columns: 140px auto auto auto;
+  gap: 10px;
+  align-items: center;
+  justify-content: start;
+  font-size: 14px;
+  width: 100%;
+}
+.hours-row input[type="time"] {
+  border: 1px solid #cfd5df;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 16px;
+  min-height: 42px;
+}
+.hours-row small {
+  color: var(--muted);
+}
+.slot-static {
+  display: inline-grid;
+  place-items: center;
+  cursor: default;
+}
+.resource-row.is-section {
+  margin-left: 22px;
+  border-style: dashed;
+}
+.resource-row .button-row {
+  margin-top: 4px;
+}
+.review-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px;
+  display: grid;
+  gap: 10px;
+}
+.review-card h3 {
+  font: 800 18px "Manrope";
+  margin: 0;
+}
+.contact-list {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 14px;
+  margin: 0;
+  background: var(--navy-soft);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 13px;
+}
+.contact-list dt {
+  color: var(--muted);
+  font-weight: 700;
+}
+.contact-list dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 680px) {
+  .occupancy-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .hours-row {
+    grid-template-columns: 1fr auto auto auto;
+  }
+  .resource-row.is-section {
+    margin-left: 12px;
+  }
+}

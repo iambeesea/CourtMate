@@ -44,6 +44,21 @@ def unit_ids(resource: Resource) -> list[str]:
     return [child.id for child in resource.children] or [resource.id]
 
 
+def has_active_holds(db: Session, resource: Resource, *, now: dt.datetime | None = None) -> bool:
+    """Whether any current or future time is held directly against this resource."""
+    now = now or utcnow()
+    return (
+        db.scalar(
+            select(ReservationSlot.reservation_id)
+            .where(
+                ReservationSlot.unit_resource_id == resource.id, ReservationSlot.slot_start >= now - dt.timedelta(minutes=QUANTUM_MINUTES)
+            )
+            .limit(1)
+        )
+        is not None
+    )
+
+
 def price_for(resource: Resource, start_at: dt.datetime, end_at: dt.datetime) -> int:
     minutes = int((end_at - start_at).total_seconds() // 60)
     return round(resource.hourly_rate_centavos * minutes / 60)

@@ -1,6 +1,7 @@
 import type {
   Achievement,
   Activity,
+  AdminFacility,
   AppConfig,
   AreaParams,
   Barangay,
@@ -8,20 +9,25 @@ import type {
   City,
   Community,
   CommunityDetail,
+  BookingRules,
   FacilityAvailability,
   FacilityDetail,
+  FacilityDraft,
   FacilitySummary,
   Match,
   MatchResult,
   Me,
   MyMatch,
   NotificationList,
+  Occupancy,
+  OperatorFacility,
   PlayerStats,
   Province,
   Queue,
   RecordOverview,
   Region,
   Reservation,
+  ResourceDraft,
   Session,
   SessionDetail,
   SessionDraft,
@@ -30,6 +36,7 @@ import type {
   Team,
   TeamDetail,
   TokenResponse,
+  VerificationStatus,
 } from './types'
 
 const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '')
@@ -244,4 +251,29 @@ export const api = {
 
   notifications: (signal?: AbortSignal) => request<NotificationList>(v1('/notifications'), { signal }),
   markNotificationsRead: () => request<void>(v1('/notifications/read'), { method: 'POST', body: {} }),
+
+  resourceTypes: () => request<Array<{ id: string; name: string }>>(v1('/resource-types')),
+  operatorFacilities: () => request<OperatorFacility[]>(v1('/operator/facilities')),
+  operatorFacility: (id: string) => request<OperatorFacility>(v1(`/operator/facilities/${id}`)),
+  registerFacility: (draft: FacilityDraft) => request<OperatorFacility>(v1('/operator/facilities'), { method: 'POST', body: draft }),
+  updateFacility: (id: string, changes: Partial<FacilityDraft> & Partial<BookingRules>) =>
+    request<OperatorFacility>(v1(`/operator/facilities/${id}`), { method: 'PATCH', body: changes }),
+  setHours: (id: string, hours: Array<{ weekday: number; openMinute: number; closeMinute: number }>) =>
+    request<OperatorFacility>(v1(`/operator/facilities/${id}/hours`), { method: 'PUT', body: hours }),
+  addResource: (id: string, draft: ResourceDraft) => request<OperatorFacility>(v1(`/operator/facilities/${id}/resources`), { method: 'POST', body: draft }),
+  updateResource: (resourceId: string, changes: Partial<ResourceDraft> & { isActive?: boolean }) =>
+    request<OperatorFacility>(v1(`/operator/resources/${resourceId}`), { method: 'PATCH', body: changes }),
+  operatorSchedule: (id: string, date: string) => request<FacilityAvailability>(v1(`/operator/facilities/${id}/availability`), { query: { date } }),
+  blockTime: (resourceId: string, startAt: string, endAt: string, reason: string) =>
+    request<Reservation>(v1(`/operator/resources/${resourceId}/blocks`), { method: 'POST', body: { startAt, endAt, reason } }),
+  removeBlock: (id: string) => request<void>(v1(`/operator/blocks/${id}`), { method: 'DELETE' }),
+  operatorReservations: (id: string, scope: 'pending' | 'upcoming' | 'past' | 'blocks') =>
+    request<Reservation[]>(v1(`/operator/facilities/${id}/reservations`), { query: { scope } }),
+  decideReservation: (reservationId: string, action: 'confirm' | 'reject' | 'cancel', reason = '') =>
+    request<Reservation>(v1(`/operator/reservations/${reservationId}/${action}`), { method: 'POST', body: action === 'confirm' ? undefined : { reason } }),
+  occupancy: (id: string) => request<Occupancy>(v1(`/operator/facilities/${id}/occupancy`)),
+
+  adminFacilities: (status: VerificationStatus) => request<AdminFacility[]>(v1('/admin/facilities'), { query: { status } }),
+  verifyFacility: (id: string, status: VerificationStatus, notes: string) =>
+    request<AdminFacility>(v1(`/admin/facilities/${id}/verification`), { method: 'POST', body: { status, notes } }),
 }

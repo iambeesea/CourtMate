@@ -496,3 +496,60 @@ export interface NotificationList {
   unread: number
   items: AppNotification[]
 }
+
+export interface OperatorFacility extends FacilityDetail {
+  contactName: string
+  contactEmail: string
+  contactPhone: string
+  verificationNotes: string
+  staff: Array<{ user: PublicUser; role: string }>
+  pendingRequests: number
+}
+
+export interface AdminFacility extends OperatorFacility {
+  owner: PublicUser
+  createdAt: string
+}
+
+export interface Occupancy {
+  facilityId: string
+  dateFrom: string
+  dateTo: string
+  openMinutes: number
+  bookedMinutes: number
+  blockedMinutes: number
+  occupancyPercent: number
+  confirmedBookings: number
+  pendingBookings: number
+  cancelledBookings: number
+  bookedValueCentavos: number
+  resources: Array<{ resourceId: string; name: string; openMinutes: number; bookedMinutes: number; blockedMinutes: number; occupancyPercent: number }>
+}
+
+export interface FacilityDraft {
+  name: string
+  description: string
+  addressLine: string
+  cityCode: string
+  barangayCode?: string | null
+  latitude?: number | null
+  longitude?: number | null
+  amenities: string[]
+  sportIds: string[]
+  contactName: string
+  contactEmail: string
+  contactPhone: string
+}
+
+export interface ResourceDraft {
+  name: string
+  resourceTypeId: string
+  sportIds: string[]
+  description: string
+  capacity: number
+  slotMinutes: number
+  hourlyRateCentavos: number
+  parentId?: string | null
+}
+
+export type VerificationStatus = 'pending' | 'verified' | 'rejected' | 'suspended'
