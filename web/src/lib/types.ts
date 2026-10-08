@@ -131,6 +131,7 @@ export interface TokenResponse {
 
 export interface AppConfig {
   demoLogin: boolean
+  demoAdminLogin: boolean
   demoData: boolean
   defaultTimezone: string
   bookingQuantumMinutes: number

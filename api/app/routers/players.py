@@ -49,7 +49,7 @@ def my_matches(
     db: Session = Depends(get_db),
 ):
     """Match history, newest first."""
-    rows = stats._my_matches(db, user.id, sport_id)[::-1][:limit]
+    rows = stats.my_matches(db, user.id, sport_id)[::-1][:limit]
     return [serializers.my_match(match, side, stats.result_for(match, side)) for match, side in rows]
 
 

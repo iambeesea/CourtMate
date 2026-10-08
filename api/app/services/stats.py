@@ -76,7 +76,7 @@ def _streaks(results: list[str]) -> tuple[str | None, int, int]:
     return results[-1], current, best
 
 
-def _my_matches(db: Session, user_id: str, sport_id: str | None = None) -> list[tuple[Match, int]]:
+def my_matches(db: Session, user_id: str, sport_id: str | None = None) -> list[tuple[Match, int]]:
     """Completed matches the player took part in, oldest first, with the side they played on."""
     query = (
         select(Match, MatchPlayer.side)
@@ -97,7 +97,7 @@ def result_for(match: Match, side: int) -> str:
 
 def _match_stats(db: Session, user: User, sport: Sport, now: dt.datetime) -> schemas.StatsOut:
     config = sport.scoring_config or {}
-    rows = _my_matches(db, user.id, sport.id)
+    rows = my_matches(db, user.id, sport.id)
     results = [result_for(match, side) for match, side in rows]
     wins, losses, draws = results.count("W"), results.count("L"), results.count("D")
     streak_type, streak, best = _streaks(results)
@@ -315,7 +315,7 @@ def _aware(value) -> dt.datetime | None:
 def achievements(db: Session, user: User) -> list[schemas.AchievementOut]:
     """Badges earned from real records. Unearned badges are simply absent."""
     earned: list[schemas.AchievementOut] = []
-    rows = _my_matches(db, user.id)
+    rows = my_matches(db, user.id)
     by_sport: dict[str, list[str]] = defaultdict(list)
     for match, side in rows:
         by_sport[match.sport_id].append(result_for(match, side))

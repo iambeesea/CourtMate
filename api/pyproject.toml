@@ -1,6 +1,6 @@
 [project]
 name = "api"
-version = "0.2.0"
+version = "0.5.0"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi[standard]>=0.141.1",

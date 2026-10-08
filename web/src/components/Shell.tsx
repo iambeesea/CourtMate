@@ -1,5 +1,5 @@
-import { ArrowRight, Bell, CalendarCheck, ChevronDown, CircleUserRound, Compass, LogIn, MapPin, Plus, Sparkles, UsersRound, Zap } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { ArrowRight, Bell, CalendarCheck, ChevronDown, CircleUserRound, Compass, LogIn, MapPin, Plus, Sparkles, UsersRound, WifiOff, Zap } from 'lucide-react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link, NavLink } from 'react-router'
 import { useAuth } from '../state/auth'
 import { useNotifications } from '../state/notifications'
@@ -121,13 +121,36 @@ function MobileNav() {
   )
 }
 
+function OfflineBanner() {
+  const [online, setOnline] = useState(() => navigator.onLine)
+  useEffect(() => {
+    const update = () => setOnline(navigator.onLine)
+    window.addEventListener('online', update)
+    window.addEventListener('offline', update)
+    return () => {
+      window.removeEventListener('online', update)
+      window.removeEventListener('offline', update)
+    }
+  }, [])
+  if (online) return null
+  return (
+    <div className="offline-banner" role="status">
+      <WifiOff size={16} /> You’re offline. Joining, booking and live queues need a connection.
+    </div>
+  )
+}
+
 export function Shell({ children }: { children: ReactNode }) {
   return (
     <div className="app-shell">
+      <a href="#main" className="skip-link">
+        Skip to content
+      </a>
       <Sidebar />
       <div className="app-main">
         <Topbar />
-        <main>{children}</main>
+        <OfflineBanner />
+        <main id="main">{children}</main>
         <MobileNav />
       </div>
     </div>

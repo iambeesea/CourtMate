@@ -1,27 +1,30 @@
 import { Compass } from 'lucide-react'
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router'
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { AuthDialog } from './components/AuthDialog'
 import { LocationPicker } from './components/LocationPicker'
 import { Shell } from './components/Shell'
-import { EmptyState } from './components/StateViews'
-import { Admin } from './pages/Admin'
+import { EmptyState, Loading } from './components/StateViews'
 import { Bookings } from './pages/Bookings'
-import { Communities } from './pages/Communities'
-import { CommunityPage } from './pages/CommunityPage'
 import { Explore } from './pages/Explore'
-import { HostSession } from './pages/HostSession'
-import { Notifications } from './pages/Notifications'
-import { OperatorFacilityPage, OperatorHome } from './pages/Operator'
 import { Play } from './pages/Play'
 import { Profile } from './pages/Profile'
 import { SessionPage } from './pages/SessionPage'
-import { TeamPage } from './pages/TeamPage'
 import { Venue } from './pages/Venue'
 import { useAuth } from './state/auth'
 import { usePlace } from './state/place'
 import './styles/legacy.css'
 import './styles/app.css'
+
+// Screens most visitors never open are split out of the first download.
+const Admin = lazy(() => import('./pages/Admin').then((module) => ({ default: module.Admin })))
+const Communities = lazy(() => import('./pages/Communities').then((module) => ({ default: module.Communities })))
+const CommunityPage = lazy(() => import('./pages/CommunityPage').then((module) => ({ default: module.CommunityPage })))
+const HostSession = lazy(() => import('./pages/HostSession').then((module) => ({ default: module.HostSession })))
+const Notifications = lazy(() => import('./pages/Notifications').then((module) => ({ default: module.Notifications })))
+const OperatorFacilityPage = lazy(() => import('./pages/Operator').then((module) => ({ default: module.OperatorFacilityPage })))
+const OperatorHome = lazy(() => import('./pages/Operator').then((module) => ({ default: module.OperatorHome })))
+const TeamPage = lazy(() => import('./pages/TeamPage').then((module) => ({ default: module.TeamPage })))
 
 function ScrollToTop() {
   const { pathname, hash } = useLocation()
@@ -56,6 +59,7 @@ export default function App() {
   return (
     <Shell>
       <ScrollToTop />
+      <Suspense fallback={<Loading />}>
       <Routes>
         <Route path="/" element={<Explore />} />
         <Route path="/venues/:id" element={<Venue />} />
@@ -74,6 +78,7 @@ export default function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
+      </Suspense>
       {dialog && <AuthDialog key={dialog.mode} />}
       {pickerOpen && <LocationPicker />}
     </Shell>

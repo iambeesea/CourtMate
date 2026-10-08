@@ -4,6 +4,29 @@ All notable changes to CourtMate are recorded here. Dates are in Philippine time
 
 ## [Unreleased] — `feat/courtmate-multisport`
 
+### Phase 6 — Mobile and production (2026-10-08)
+
+Added
+
+- Progressive web app: manifest, CourtMate icons, service worker for the app shell and build assets, offline banner.
+- GitHub Actions workflow running API and web checks on pull requests.
+- `python -m app.manage make-admin|revoke-admin` for creating administrators.
+- `docs/DEPLOYMENT.md`, a rewritten `README.md`, and `DEMO_ADMIN_LOGIN`, `MAX_BODY_BYTES` settings.
+- Web tests for join wording, score display, story-card content and the service worker (22 in total); 8 more API tests (162 in total), including one that fails if a write route lacks a sign-in requirement.
+
+Changed
+
+- `render.yaml` sets `ENVIRONMENT=production`, the demo flags and forwarded-header trust explicitly, and documents `DATABASE_URL`.
+- `vercel.json` sends a Content-Security-Policy and other security headers, and caching rules for build assets and the service worker.
+- Less-visited screens load on demand; fonts no longer block rendering.
+- The favicon is the CourtMate mark instead of the framework default.
+
+Security
+
+- The demo administrator persona is off by default when `ENVIRONMENT=production`.
+- Request bodies larger than `MAX_BODY_BYTES` are refused.
+- An empty `DATABASE_URL` is treated as unset instead of failing at start.
+
 ### Phase 5 — Facility management (2026-10-08)
 
 Added

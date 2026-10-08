@@ -91,9 +91,11 @@ export function AuthDialog() {
             <button className="button button-ghost" disabled={busy} onClick={() => run(() => demoSignIn('operator'), 'Signed in as Demo Operator.')}>
               Demo venue operator
             </button>
-            <button className="button button-ghost" disabled={busy} onClick={() => run(() => demoSignIn('admin'), 'Signed in as Demo Admin.')}>
-              Demo admin
-            </button>
+            {config.demoAdminLogin && (
+              <button className="button button-ghost" disabled={busy} onClick={() => run(() => demoSignIn('admin'), 'Signed in as Demo Admin.')}>
+                Demo admin
+              </button>
+            )}
           </div>
         </div>
       )}

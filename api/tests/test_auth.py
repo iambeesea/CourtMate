@@ -140,3 +140,35 @@ def test_login_is_rate_limited(client):
     ]
     assert statuses[:10] == [401] * 10
     assert statuses[10] == 429
+
+
+def test_demo_admin_can_be_withheld_while_other_demo_personas_work(client, monkeypatch):
+    from app.config import Settings
+    from app.routers import auth
+
+    monkeypatch.setattr(auth, "get_settings", lambda: Settings(demo_login=True, demo_admin_login=False))
+    assert client.post(f"{API}/auth/demo", json={"persona": "admin"}).status_code == 404
+    assert client.post(f"{API}/auth/demo", json={"persona": "player"}).status_code == 200
+
+
+def test_demo_admin_is_off_by_default_in_production(monkeypatch):
+    from app.config import Settings
+
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.delenv("DEMO_ADMIN_LOGIN", raising=False)
+    assert Settings().demo_admin_login is False
+    monkeypatch.setenv("DEMO_ADMIN_LOGIN", "true")
+    assert Settings().demo_admin_login is True
+
+
+def test_admins_are_made_from_the_command_line(client, db_path):
+    from app import manage
+
+    register(client)
+    assert manage.main(["make-admin", "ANA@example.com"]) == 0
+    login = client.post(f"{API}/auth/login", json={"email": GOOD["email"], "password": GOOD["password"]}).json()
+    assert login["user"]["role"] == "admin"
+    assert manage.main(["revoke-admin", "ana@example.com"]) == 0
+    assert manage.main(["make-admin", "nobody@example.com"]) == 1
+    assert manage.main(["make-admin", "demo.player@courtmate.demo"]) == 1
+    assert manage.main([]) == 2

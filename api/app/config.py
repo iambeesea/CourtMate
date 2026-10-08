@@ -11,7 +11,8 @@ def _flag(name: str, default: bool) -> bool:
 
 
 def _database_url() -> str:
-    url = os.getenv("DATABASE_URL", "sqlite:///./courtmate.db").strip()
+    # An empty value (an unfilled dashboard field) means "not set".
+    url = (os.getenv("DATABASE_URL") or "").strip() or "sqlite:///./courtmate.db"
     # Hosting providers hand out postgres:// or postgresql:// URLs; SQLAlchemy needs the driver named.
     for prefix in ("postgres://", "postgresql://"):
         if url.startswith(prefix):
@@ -29,6 +30,12 @@ class Settings:
     # Demo data is clearly labelled wherever it is shown. Turn it off for a real launch.
     seed_demo_data: bool = field(default_factory=lambda: _flag("SEED_DEMO_DATA", True))
     demo_login: bool = field(default_factory=lambda: _flag("DEMO_LOGIN", _flag("SEED_DEMO_DATA", True)))
+    # The demo administrator can change the sport catalog and verify venues, so on a
+    # production deployment it stays off unless it is switched on deliberately.
+    demo_admin_login: bool = field(
+        default_factory=lambda: _flag("DEMO_ADMIN_LOGIN", os.getenv("ENVIRONMENT", "development") != "production")
+    )
+    max_body_bytes: int = field(default_factory=lambda: int(os.getenv("MAX_BODY_BYTES", str(256 * 1024))))
     auto_migrate: bool = field(default_factory=lambda: _flag("AUTO_MIGRATE", True))
     rate_limit_enabled: bool = field(default_factory=lambda: _flag("RATE_LIMIT_ENABLED", True))
     token_ttl_hours: int = field(default_factory=lambda: int(os.getenv("TOKEN_TTL_HOURS", str(24 * 14))))

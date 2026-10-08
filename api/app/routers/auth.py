@@ -65,7 +65,8 @@ def login(payload: schemas.LoginIn, request: Request, db: Session = Depends(get_
 @router.post("/demo", response_model=schemas.TokenOut)
 def demo_login(payload: schemas.DemoLoginIn, request: Request, db: Session = Depends(get_db)):
     """Sign in as a seeded demo persona. Only exists when DEMO_LOGIN is on; demo accounts have no password."""
-    if not get_settings().demo_login:
+    settings = get_settings()
+    if not settings.demo_login or (payload.persona == "admin" and not settings.demo_admin_login):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Demo sign-in is not enabled.")
     rate_limiter.check(client_key(request, "demo"), limit=30, window_seconds=300)
     user = db.scalar(select(User).where(User.email == DEMO_EMAILS[payload.persona], User.is_demo.is_(True)))

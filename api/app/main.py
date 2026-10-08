@@ -3,6 +3,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import JSONResponse
 
 from . import schemas, seed
 from .config import get_settings
@@ -11,7 +13,7 @@ from .migrate import run_migrations
 from .routers import admin, auth, communities, facilities, geo, notifications, operator, players, reservations, sessions, sports, teams
 from .timeutil import DEFAULT_TIMEZONE, QUANTUM_MINUTES
 
-VERSION = "0.4.0"
+VERSION = "0.5.0"
 logger = logging.getLogger("courtmate")
 
 
@@ -51,8 +53,15 @@ app.add_middleware(
 )
 
 
+app.add_middleware(GZipMiddleware, minimum_size=1024)
+
+
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
+    # Every request body here is a small JSON document; refuse anything that is not.
+    declared = request.headers.get("content-length")
+    if declared and declared.isdigit() and int(declared) > get_settings().max_body_bytes:
+        return JSONResponse({"detail": "That request is too large."}, status_code=413)
     response = await call_next(request)
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "DENY")
@@ -83,6 +92,7 @@ def read_config():
     settings = get_settings()
     return schemas.AppConfig(
         demo_login=settings.demo_login,
+        demo_admin_login=settings.demo_login and settings.demo_admin_login,
         demo_data=settings.seed_demo_data,
         default_timezone=DEFAULT_TIMEZONE,
         booking_quantum_minutes=QUANTUM_MINUTES,

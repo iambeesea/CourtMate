@@ -90,7 +90,8 @@ Statistics are computed on request from those rows using the sport's `aggregatio
 
 - Email + password accounts. Passwords are hashed with scrypt. Sign-in issues an opaque random token; only its SHA-256 digest is stored, and it can be revoked.
 - Roles: `player` (default) and `admin`. Facility permissions are per facility through `facility_staff` (`owner`, `manager`). Session controls belong to the session host.
-- Demo sign-in (`POST /api/v1/auth/demo`) exists only when `DEMO_LOGIN=true` and never accepts a password.
+- Demo sign-in (`POST /api/v1/auth/demo`) exists only when `DEMO_LOGIN=true` and never accepts a password. The demo administrator persona needs `DEMO_ADMIN_LOGIN` as well, which is off by default in production.
+- Administrators are created from the command line (`python -m app.manage make-admin`), never through the app.
 
 ## 9. API surface
 
@@ -106,5 +107,5 @@ All routes are under `/api/v1`. The interactive reference is served at `/docs`.
 | Sessions | `sessions`, `sessions/{id}`, `join`, `leave`, participants, queue, matches |
 | Community | `communities`, `teams` |
 | Players | `players/me/stats`, `players/me/activities`, `notifications` |
-| Operators | `operator/facilities`, resources, hours, blocks, reservation decisions, occupancy |
-| Admin | `admin/sports`, `admin/facilities/{id}/verification` |
+| Operators | `operator/facilities`, resources, hours, availability, blocks, reservation decisions, occupancy |
+| Admin | `admin/sports`, `admin/facilities`, `admin/facilities/{id}/verification` |

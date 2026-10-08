@@ -11,7 +11,7 @@ Branch `feat/courtmate-multisport`. Updated at the end of each phase. Design is 
 | 3 | Open plays | Done |
 | 4 | Communities and statistics | Done |
 | 5 | Facility management | Done |
-| 6 | Mobile and production | Not started |
+| 6 | Mobile and production | Done |
 
 ## Phase 2 — Universal sports foundation
 
@@ -102,6 +102,19 @@ Branch `feat/courtmate-multisport`. Updated at the end of each phase. Design is 
 
 Operator contact details and verification notes are returned only by the operator and admin routes; a test asserts they are absent from the public facility responses.
 
+## Phase 6 — Mobile and production
+
+- **Installable web app.** Manifest, CourtMate icons (192, 512, maskable, Apple touch), and a service worker that caches the app shell and hashed build assets. It never stores API responses. An offline banner explains what needs a connection.
+- **Responsive pass.** Bottom navigation with five tabs, sheet-style dialogs on phones, 16-pixel form controls (no zoom on iOS), 44-pixel touch targets on primary actions, a skip link, focus outlines, reduced-motion support, and no horizontal overflow at 375 pixels.
+- **Security.**
+  - API: demo administrator off by default in production; request bodies capped; security headers; CORS without credentials; rate-limited sign-in; per-account caps on bookings, hosted sessions, communities and venues.
+  - Web: Content-Security-Policy, frame, referrer and permissions headers in `vercel.json`. The production build was loaded locally under that policy with no violations.
+  - `python -m app.manage make-admin` is the only way to create an administrator.
+  - A test walks all 80 routes and fails if a state-changing route is added without a sign-in requirement.
+- **Performance.** Gzip on API responses; reference data cacheable for a day; the map and the less-visited screens (venue dashboard, admin, host form, communities, teams, notifications) are downloaded on demand; fonts load without blocking. First download is about 100 kB of JavaScript compressed.
+- **Testing.** 162 API tests and 22 web tests, plus GitHub Actions running lint, tests and build for both on every pull request.
+- **Deployment.** `render.yaml` and `vercel.json` updated; see `DEPLOYMENT.md`.
+
 ## How to run
 
 ```bash
@@ -116,17 +129,21 @@ Open <http://localhost:5173>. "Sign in → Demo player" needs no password.
 
 ## Checks
 
-| Check | Command | Latest result (end of phase 5) |
+| Check | Command | Latest result (end of phase 6) |
 | --- | --- | --- |
-| API tests | `cd api && uv run pytest` | 154 passed |
+| API tests | `cd api && uv run pytest` | 162 passed |
 | API lint and format | `uv run ruff check . && uv run ruff format --check .` | Clean |
 | Web type check and build | `cd web && npm run build` | Clean |
 | Web lint | `npm run lint` | Clean |
-| Web unit tests | `npm test` | 9 passed (also with `TZ=America/New_York`) |
+| Web unit tests | `npm test` | 22 passed (time formatting also passes with `TZ=America/New_York`) |
 | Browser walk-through | Explore → venue → pick slots → demo sign-in → confirm → Bookings; location filter on a phone-sized viewport; session page → check in to the live queue; host form for running and badminton; player record, share card and Communities; venue dashboard → accept a booking request | Worked |
+| Production build under the production Content-Security-Policy | Local server sending `vercel.json` headers | Loaded with no policy violations |
+| Runtime dependency audit | `npm audit --omit=dev` | 0 vulnerabilities |
 
 ## Known limitations
 
+- **Service worker registration was not observed.** Its logic is covered by tests against a simulated worker environment, but the embedded browser used for manual checks refused to register any service worker, so installation and offline start should be confirmed on a phone after deployment.
+- **A Vercel preview of this branch will not work end to end** until the API from this branch is deployed, because previews call the production API URL.
 - **PostgreSQL has not been exercised.** Every test and manual check ran on SQLite. The schema and the booking guard use only portable features, and the PostgreSQL driver is installed, but the first PostgreSQL deployment should be treated as untested.
 - **Location data is an older PSGC snapshot** (17 regions, 81 provinces). See `api/app/data/psgc/SOURCE.md`.
 - **Email addresses are not verified** and there is no password reset. Both need an email provider.

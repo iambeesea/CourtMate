@@ -258,6 +258,7 @@ class ProfilePatch(ApiModel):
 
 class AppConfig(ApiModel):
     demo_login: bool
+    demo_admin_login: bool
     demo_data: bool
     default_timezone: str
     booking_quantum_minutes: int
