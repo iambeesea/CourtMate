@@ -11,3 +11,5 @@ __pycache__/
 *.db-wal
 .ruff_cache/
 .claude/
+.vercel
+.env.local
