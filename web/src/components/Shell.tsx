@@ -1,7 +1,8 @@
-import { ArrowRight, CalendarCheck, ChevronDown, CircleUserRound, Compass, LogIn, MapPin, Plus, Sparkles, Zap } from 'lucide-react'
+import { ArrowRight, Bell, CalendarCheck, ChevronDown, CircleUserRound, Compass, LogIn, MapPin, Plus, Sparkles, UsersRound, Zap } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link, NavLink } from 'react-router'
 import { useAuth } from '../state/auth'
+import { useNotifications } from '../state/notifications'
 import { placeLabel, usePlace } from '../state/place'
 import { Avatar } from './StateViews'
 
@@ -22,6 +23,7 @@ const NAV = [
   { to: '/', label: 'Explore', icon: Compass, end: true },
   { to: '/bookings', label: 'Bookings', icon: CalendarCheck, end: false },
   { to: '/play', label: 'Play', icon: Zap, end: false },
+  { to: '/communities', label: 'Communities', icon: UsersRound, end: false },
   { to: '/profile', label: 'Profile', icon: CircleUserRound, end: false },
 ]
 
@@ -73,6 +75,7 @@ function Sidebar() {
 function Topbar() {
   const { user, openAuth } = useAuth()
   const { place, openPicker } = usePlace()
+  const { unread } = useNotifications()
   return (
     <header className="topbar">
       <div className="mobile-logo">
@@ -85,6 +88,12 @@ function Topbar() {
         <Link to="/host" className="host-button">
           <Plus size={17} /> Host a session
         </Link>
+        {user && (
+          <Link to="/notifications" className="bell-button" aria-label={unread ? `Notifications, ${unread} unread` : 'Notifications'}>
+            <Bell size={19} />
+            {unread > 0 && <span>{unread > 9 ? '9+' : unread}</span>}
+          </Link>
+        )}
         {user ? (
           <Link to="/profile" aria-label="Your profile">
             <Avatar user={user} />

@@ -1,17 +1,25 @@
 import type {
+  Achievement,
+  Activity,
   AppConfig,
   AreaParams,
   Barangay,
   Category,
   City,
+  Community,
+  CommunityDetail,
   FacilityAvailability,
   FacilityDetail,
   FacilitySummary,
   Match,
   MatchResult,
   Me,
+  MyMatch,
+  NotificationList,
+  PlayerStats,
   Province,
   Queue,
+  RecordOverview,
   Region,
   Reservation,
   Session,
@@ -19,6 +27,8 @@ import type {
   SessionDraft,
   Sport,
   SportProfile,
+  Team,
+  TeamDetail,
   TokenResponse,
 } from './types'
 
@@ -206,4 +216,32 @@ export const api = {
   sessionMatches: (id: string) => request<Match[]>(v1(`/sessions/${id}/matches`)),
   recordResult: (matchId: string, result: MatchResult) => request<Match>(v1(`/matches/${matchId}/result`), { method: 'POST', body: result }),
   voidMatch: (matchId: string) => request<Match>(v1(`/matches/${matchId}/void`), { method: 'POST' }),
+
+  communities: (query: AreaParams & { sportId?: string; q?: string; mine?: boolean }) =>
+    request<Community[]>(v1('/communities'), { query: { ...query, lat: undefined, lng: undefined, radiusKm: undefined, barangayCode: undefined } }),
+  community: (id: string) => request<CommunityDetail>(v1(`/communities/${encodeURIComponent(id)}`)),
+  createCommunity: (body: { name: string; description: string; cityCode?: string; sportIds: string[] }) =>
+    request<CommunityDetail>(v1('/communities'), { method: 'POST', body }),
+  joinCommunity: (id: string) => request<CommunityDetail>(v1(`/communities/${id}/join`), { method: 'POST' }),
+  leaveCommunity: (id: string) => request<CommunityDetail>(v1(`/communities/${id}/leave`), { method: 'POST' }),
+
+  teams: (query: { sportId?: string; communityId?: string; mine?: boolean }) => request<Team[]>(v1('/teams'), { query }),
+  team: (id: string) => request<TeamDetail>(v1(`/teams/${id}`)),
+  createTeam: (body: { name: string; sportId: string; communityId?: string; cityCode?: string; description: string }) =>
+    request<TeamDetail>(v1('/teams'), { method: 'POST', body }),
+  joinTeam: (id: string) => request<TeamDetail>(v1(`/teams/${id}/join`), { method: 'POST' }),
+  leaveTeam: (id: string) => request<TeamDetail>(v1(`/teams/${id}/leave`), { method: 'POST' }),
+  removeTeamMember: (id: string, userId: string) => request<TeamDetail>(v1(`/teams/${id}/members/${userId}`), { method: 'DELETE' }),
+
+  records: () => request<RecordOverview[]>(v1('/players/me/records')),
+  stats: (sportId?: string) => request<PlayerStats>(v1('/players/me/stats'), { query: { sportId } }),
+  myMatches: (sportId: string, limit = 10) => request<MyMatch[]>(v1('/players/me/matches'), { query: { sportId, limit } }),
+  myActivities: (sportId: string, limit = 10) => request<Activity[]>(v1('/players/me/activities'), { query: { sportId, limit } }),
+  logActivity: (body: { sportId: string; occurredAt: string; metrics: Record<string, number>; note: string }) =>
+    request<Activity>(v1('/players/me/activities'), { method: 'POST', body }),
+  deleteActivity: (id: string) => request<void>(v1(`/players/me/activities/${id}`), { method: 'DELETE' }),
+  achievements: () => request<Achievement[]>(v1('/players/me/achievements')),
+
+  notifications: (signal?: AbortSignal) => request<NotificationList>(v1('/notifications'), { signal }),
+  markNotificationsRead: () => request<void>(v1('/notifications/read'), { method: 'POST', body: {} }),
 }

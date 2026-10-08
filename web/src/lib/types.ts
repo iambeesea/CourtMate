@@ -386,3 +386,113 @@ export interface MatchResult {
   draw?: boolean
   playerStats?: Record<string, Record<string, number>>
 }
+
+export interface Member {
+  user: PublicUser
+  role: string
+  joinedAt: string
+}
+
+export interface Community {
+  id: string
+  name: string
+  slug: string
+  description: string
+  city: Place | null
+  region: Place | null
+  sports: SportSummary[]
+  memberCount: number
+  visibility: 'public' | 'private'
+  isDemo: boolean
+  viewerRole: 'owner' | 'admin' | 'member' | null
+}
+
+export interface Team {
+  id: string
+  name: string
+  sport: SportSummary
+  community: { id: string; name: string } | null
+  city: Place | null
+  description: string
+  memberCount: number
+  captain: PublicUser
+  isDemo: boolean
+  viewerRole: 'captain' | 'member' | null
+}
+
+export interface TeamDetail extends Team {
+  members: Member[]
+}
+
+export interface CommunityDetail extends Community {
+  members: Member[]
+  teams: Team[]
+}
+
+export interface StatValue {
+  key: string
+  label: string
+  value: number
+  display: string
+  unit: string
+  note: string
+}
+
+export type FormResult = 'W' | 'L' | 'D'
+
+export interface PlayerStats {
+  sport: SportSummary
+  recordType: 'matches' | 'activities' | 'attendance'
+  hasData: boolean
+  summary: StatValue[]
+  recentForm: FormResult[]
+  streakType: FormResult | null
+  streak: number
+  bestWinStreak: number
+  byMonth: Array<{ month: string; label: string; count: number }>
+  partners: Array<{ user: PublicUser; matches: number; wins: number }>
+  containsDemoData: boolean
+}
+
+export interface RecordOverview {
+  sport: SportSummary
+  recordType: 'matches' | 'activities' | 'attendance'
+  entries: number
+  lastPlayedAt: string | null
+}
+
+export interface MyMatch extends Match {
+  result: FormResult
+  mySide: 1 | 2
+}
+
+export interface Activity {
+  id: string
+  sport: SportSummary
+  occurredAt: string
+  metrics: Record<string, number>
+  source: string
+  note: string
+  isDemo: boolean
+}
+
+export interface Achievement {
+  id: string
+  label: string
+  description: string
+}
+
+export interface AppNotification {
+  id: string
+  kind: string
+  title: string
+  body: string
+  link: string
+  readAt: string | null
+  createdAt: string
+}
+
+export interface NotificationList {
+  unread: number
+  items: AppNotification[]
+}

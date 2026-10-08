@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from .. import schemas, serializers
 from ..db import get_db
-from ..models import Match, PlaySession, SessionParticipant, Sport, User
+from ..models import Match, PlaySession, SessionParticipant, Sport, Team, TeamMember, User
 from ..security import current_user, optional_user
 from ..services import booking
 from ..services import sessions as service
@@ -271,8 +271,13 @@ def manage_participant(
 def join_session(session_id: str, payload: schemas.JoinIn | None = None, user: User = Depends(current_user), db: Session = Depends(get_db)):
     """Join a session. Full sessions put the player on the waitlist; approval sessions hold them as pending."""
     session = _session(db, session_id)
+    team_id = payload.team_id if payload else None
+    if team_id:
+        team = db.get(Team, team_id)
+        if team is None or team.sport_id != session.sport_id or db.get(TeamMember, (team_id, user.id)) is None:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Choose one of your own teams for this sport.")
     try:
-        service.join(db, session, user, team_id=payload.team_id if payload else None)
+        service.join(db, session, user, team_id=team_id)
         db.commit()
     except service.SessionError as error:
         db.rollback()

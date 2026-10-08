@@ -613,3 +613,169 @@ class QueueOut(ApiModel):
     resting: list[ParticipantOut]
     not_checked_in: list[ParticipantOut]
     can_manage: bool
+
+
+# --- communities and teams ----------------------------------------------------
+
+
+class MemberOut(ApiModel):
+    user: PublicUser
+    role: str
+    joined_at: dt.datetime
+
+
+class CommunityIn(ApiModel):
+    name: str = Field(min_length=3, max_length=120)
+    description: LongText = ""
+    city_code: str | None = None
+    sport_ids: list[str] = Field(min_length=1, max_length=30)
+    visibility: Literal["public", "private"] = "public"
+
+
+class CommunityPatch(ApiModel):
+    name: str | None = Field(default=None, min_length=3, max_length=120)
+    description: LongText | None = None
+    city_code: str | None = None
+    sport_ids: list[str] | None = Field(default=None, min_length=1, max_length=30)
+
+
+class CommunityOut(ApiModel):
+    id: str
+    name: str
+    slug: str
+    description: str
+    city: Place | None
+    region: Place | None
+    sports: list[SportSummary]
+    member_count: int
+    visibility: str
+    is_demo: bool
+    viewer_role: str | None
+
+
+class TeamIn(ApiModel):
+    name: str = Field(min_length=2, max_length=120)
+    sport_id: str
+    community_id: str | None = None
+    city_code: str | None = None
+    description: LongText = ""
+
+
+class TeamOut(ApiModel):
+    id: str
+    name: str
+    sport: SportSummary
+    community: SessionCommunity | None
+    city: Place | None
+    description: str
+    member_count: int
+    captain: PublicUser
+    is_demo: bool
+    viewer_role: str | None
+
+
+class TeamDetail(TeamOut):
+    members: list[MemberOut]
+
+
+class CommunityDetail(CommunityOut):
+    members: list[MemberOut]
+    teams: list[TeamOut]
+
+
+# --- player records -----------------------------------------------------------
+
+
+class StatValue(ApiModel):
+    key: str
+    label: str
+    value: float
+    display: str
+    unit: str = ""
+    note: str = ""
+
+
+class MonthCount(ApiModel):
+    month: str
+    label: str
+    count: int
+
+
+class PartnerStat(ApiModel):
+    user: PublicUser
+    matches: int
+    wins: int
+
+
+class StatsOut(ApiModel):
+    sport: SportSummary
+    # How this sport keeps records: head-to-head results, logged activities, or attendance.
+    record_type: Literal["matches", "activities", "attendance"]
+    has_data: bool
+    summary: list[StatValue]
+    recent_form: list[Literal["W", "L", "D"]]
+    streak_type: Literal["W", "L", "D"] | None
+    streak: int
+    best_win_streak: int
+    by_month: list[MonthCount]
+    partners: list[PartnerStat]
+    contains_demo_data: bool
+
+
+class RecordOverview(ApiModel):
+    """Which sports a player has results in, most active first."""
+
+    sport: SportSummary
+    record_type: str
+    entries: int
+    last_played_at: dt.datetime | None
+
+
+class MyMatchOut(MatchOut):
+    result: Literal["W", "L", "D"]
+    my_side: int
+
+
+class ActivityIn(ApiModel):
+    sport_id: str
+    occurred_at: AwareDatetime
+    metrics: dict[str, float] = Field(max_length=12)
+    note: str = Field(default="", max_length=300)
+
+
+class ActivityOut(ApiModel):
+    id: str
+    sport: SportSummary
+    occurred_at: dt.datetime
+    metrics: dict[str, float]
+    source: str
+    note: str
+    is_demo: bool
+
+
+class AchievementOut(ApiModel):
+    id: str
+    label: str
+    description: str
+
+
+# --- notifications ------------------------------------------------------------
+
+
+class NotificationOut(ApiModel):
+    id: str
+    kind: str
+    title: str
+    body: str
+    link: str
+    read_at: dt.datetime | None
+    created_at: dt.datetime
+
+
+class NotificationList(ApiModel):
+    unread: int
+    items: list[NotificationOut]
+
+
+class MarkReadIn(ApiModel):
+    ids: list[str] | None = Field(default=None, max_length=200)

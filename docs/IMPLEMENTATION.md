@@ -9,7 +9,7 @@ Branch `feat/courtmate-multisport`. Updated at the end of each phase. Design is 
 | 1 | GitHub connection, audit, architecture | Done |
 | 2 | Universal sports foundation | Done |
 | 3 | Open plays | Done |
-| 4 | Communities and statistics | Not started |
+| 4 | Communities and statistics | Done |
 | 5 | Facility management | Not started |
 | 6 | Mobile and production | Not started |
 
@@ -54,7 +54,30 @@ Branch `feat/courtmate-multisport`. Updated at the end of each phase. Design is 
 - Host form driven by the sport's configuration: a running session asks for a meet-up point and route; a badminton session asks for format, venue and queue.
 - Play tab: live sessions first, then joined and hosted sessions, upcoming and past.
 
-**Still served by the original MVP code in this phase**: the player record and the communities endpoint. They are replaced in phase 4.
+## Phase 4 — Communities and statistics
+
+**API**
+
+- Communities with members, roles, sports and a home city; public or private; filters by sport, location and text. Sessions can be hosted for a community and listed by it.
+- Teams per sport, optionally inside a community, with a captain and roster. A player joining a session can tag one of their own teams.
+- Player records per sport, computed on request and never stored:
+  - head-to-head sports from completed matches: played, won, lost, drawn where the sport allows it, win rate, current and best streak, games or sets won, team totals, per-player lines (points, rebounds, assists, goals…) only where someone recorded them, and most frequent partners;
+  - individual sports from logged activities, using the aggregations in the sport's configuration (total distance, average pace, average speed, personal best, best round…);
+  - class and meet-up sports from checked-in attendance at finished sessions.
+- A sport with nothing recorded returns `hasData: false` and no figures.
+- Self-reported activity logging, validated against the sport's fields, and match history.
+- Achievements derived from records (first result, winning streak, regular, multi-sport, community member, host).
+- In-app notifications with an unread count: waitlist promotion, join requests and decisions, removal, reschedules and cancellations.
+- Demo communities (the original three plus two more), teams and sample results for the demo player. All flagged as demo.
+
+**Web**
+
+- Communities tab with discovery, "mine", creation, community pages (sessions, teams, members) and team pages.
+- Profile now holds the player record: one tab per sport, a headline figure, recent form, a stat grid that adapts to the sport, activity by month, partners, match or activity history, and achievements.
+- Logging form generated from the sport's activity fields.
+- The Instagram Story card works for any sport's record and marks demo figures as demo.
+- Notification bell with unread count and a notifications page.
+- The original MVP screens and their bundled demo figures are gone.
 
 ## How to run
 
@@ -70,14 +93,14 @@ Open <http://localhost:5173>. "Sign in → Demo player" needs no password.
 
 ## Checks
 
-| Check | Command | Latest result (end of phase 3) |
+| Check | Command | Latest result (end of phase 4) |
 | --- | --- | --- |
-| API tests | `cd api && uv run pytest` | 113 passed |
+| API tests | `cd api && uv run pytest` | 138 passed |
 | API lint and format | `uv run ruff check . && uv run ruff format --check .` | Clean |
 | Web type check and build | `cd web && npm run build` | Clean |
 | Web lint | `npm run lint` | Clean |
 | Web unit tests | `npm test` | 9 passed (also with `TZ=America/New_York`) |
-| Browser walk-through | Explore → venue → pick slots → demo sign-in → confirm → Bookings; location filter on a phone-sized viewport; session page → check in to the live queue; host form for running and badminton | Worked |
+| Browser walk-through | Explore → venue → pick slots → demo sign-in → confirm → Bookings; location filter on a phone-sized viewport; session page → check in to the live queue; host form for running and badminton; player record, share card and Communities | Worked |
 
 ## Known limitations
 
@@ -87,6 +110,9 @@ Open <http://localhost:5173>. "Sign in → Demo player" needs no password.
 - **Access tokens are kept in `localStorage`.** That is simple and works across the separate web and API hosts, but any script injected into the page could read the token. Moving the API behind the web origin and using an HttpOnly cookie is the stronger setup.
 - **Rate limiting is per process** and keyed on the connecting address. Behind a proxy the API needs forwarded headers enabled to see real client addresses, and more than one instance needs a shared store.
 - **No online payments.** Reservations record "pay at venue".
+- **Results are trusted as entered.** A match score is recorded by the host or one of its players, and activities are self-reported; there is no second confirmation or dispute step.
+- **Notifications are in-app only** and the badge refreshes once a minute. There is no push or email.
+- **Private communities have no invitation flow yet**; the API supports them, the web only creates public ones.
 - **Queue screens poll** every eight seconds rather than receiving pushed updates.
 - **Tournament brackets are not built.** `tournament` and `event` are session kinds with registration and capacity only.
 - **The host form assumes Philippine time (UTC+8)** when turning the chosen date and time into a timestamp.

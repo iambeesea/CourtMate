@@ -8,10 +8,10 @@ from . import schemas, seed
 from .config import get_settings
 from .db import configure, session_factory
 from .migrate import run_migrations
-from .routers import admin, auth, communities, facilities, geo, players, reservations, sessions, sports
+from .routers import admin, auth, communities, facilities, geo, notifications, players, reservations, sessions, sports, teams
 from .timeutil import DEFAULT_TIMEZONE, QUANTUM_MINUTES
 
-VERSION = "0.2.0"
+VERSION = "0.3.0"
 logger = logging.getLogger("courtmate")
 
 
@@ -64,7 +64,7 @@ async def security_headers(request: Request, call_next):
     return response
 
 
-for module in (auth, sports, geo, facilities, reservations, sessions, players, communities, admin):
+for module in (auth, sports, geo, facilities, reservations, sessions, players, communities, teams, notifications, admin):
     app.include_router(module.router, prefix="/api/v1")
 
 

@@ -1,21 +1,25 @@
-import { BarChart3, CircleUserRound, LogOut, MapPin, Pencil } from 'lucide-react'
+import { Bell, CircleUserRound, LogOut, MapPin, Pencil, UsersRound } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { CityPicker } from '../components/CityPicker'
 import { Modal } from '../components/Modal'
+import { PlayerRecord } from '../components/PlayerRecord'
 import { SportIcon } from '../components/SportIcon'
 import { Avatar, DemoBadge, EmptyState, Loading } from '../components/StateViews'
 import { ApiError, api } from '../lib/api'
 import type { Me, Place, SportProfile } from '../lib/types'
+import { useAsync } from '../lib/useAsync'
 import { useAuth } from '../state/auth'
 import { useCatalog } from '../state/catalog'
 import { useToast } from '../state/toast'
+import { TeamCard } from './CommunityPage'
 
 export function Profile() {
   const { user, ready, openAuth, signOut } = useAuth()
   const { sport: findSport } = useCatalog()
   const notify = useToast()
   const [editing, setEditing] = useState(false)
+  const teams = useAsync(() => api.teams({ mine: true }), [user?.id], Boolean(user))
 
   if (!ready) return <Loading />
   if (!user) {
@@ -73,12 +77,36 @@ export function Profile() {
       </div>
       {user.bio && <p className="profile-bio">{user.bio}</p>}
 
+      <div className="section-block">
+        <PlayerRecord user={user} />
+      </div>
+
+      {(teams.data?.length ?? 0) > 0 && (
+        <section className="section-block">
+          <div className="section-heading">
+            <h3>Your teams</h3>
+          </div>
+          <div className="card-grid">
+            {teams.data?.map((team) => (
+              <TeamCard key={team.id} team={team} />
+            ))}
+          </div>
+        </section>
+      )}
+
       <section className="section-block link-list">
-        <Link to="/record" className="link-row">
-          <BarChart3 size={20} />
+        <Link to="/communities" className="link-row">
+          <UsersRound size={20} />
           <div>
-            <strong>Player record</strong>
-            <span>Results, streaks and your shareable match card</span>
+            <strong>Communities</strong>
+            <span>Clubs and groups you play with</span>
+          </div>
+        </Link>
+        <Link to="/notifications" className="link-row">
+          <Bell size={20} />
+          <div>
+            <strong>Notifications</strong>
+            <span>Session and booking updates</span>
           </div>
         </Link>
         <button

@@ -17,6 +17,9 @@ from sqlalchemy.orm import Session
 
 from . import schemas
 from .models import (
+    ActivityLog,
+    Community,
+    CommunityMember,
     Facility,
     FacilityHours,
     FacilityStaff,
@@ -24,11 +27,15 @@ from .models import (
     GeoCity,
     GeoProvince,
     GeoRegion,
+    Match,
+    MatchPlayer,
     PlaySession,
     Resource,
     ResourceType,
     Sport,
     SportCategory,
+    Team,
+    TeamMember,
     User,
     UserSport,
 )
@@ -376,6 +383,8 @@ def seed_demo(db: Session, *, now: dt.datetime | None = None) -> bool:
     facilities = [_demo_facility(db, definition, operator) for definition in DEMO_FACILITIES]
     _demo_bookings(db, facilities[0], players, operator, now)
     seed_demo_sessions(db, now=now)
+    seed_demo_community(db, player, players, now=now)
+    seed_demo_records(db, player, players, now=now)
     db.commit()
     return True
 
@@ -610,3 +619,127 @@ def refresh_demo_sessions(db: Session, *, now: dt.datetime | None = None) -> boo
     seed_demo_sessions(db, now=now)
     db.commit()
     return True
+
+
+# --- demo communities, teams and results --------------------------------------
+
+# name, sports, city, owner index, member indexes, session titles hosted for the community
+DEMO_COMMUNITIES = [
+    ("Rally Community", ["pickleball"], "137404000", 0, [1, 2, 3, 4, 5], ["Saturday Sunrise Rally"]),
+    ("Shuttle Community", ["badminton"], "137404000", 1, [2, 3, 4, 5, 6, 7, 8], ["After Work Smash", "Demo Live Queue"]),
+    ("Dink Community", ["pickleball"], "137404000", 2, [0, 6, 7], ["Midweek Dink and Drink"]),
+    ("Demo Malolos Hoopers", ["basketball", "volleyball"], "031410000", 3, [4, 5, 6, 7, 8], ["Saturday Hoops Run", "Volleyball Night"]),
+    ("Demo Dawn Runners", ["running", "cycling"], "137404000", 5, [0, 2, 4, 8], ["Sunday Long Run"]),
+]
+
+# Results in time order for the demo player's pickleball record: 18 wins, 10 losses, on a four-match winning run.
+DEMO_PICKLEBALL_FORM = "WWLWLWWLWWLWLWWLWLWWLWL" + "LWWWW"
+DEMO_BADMINTON_FORM = "LWWLWL"
+
+
+def seed_demo_community(db: Session, me: User, players: list[User], *, now: dt.datetime) -> None:
+    for name, sport_ids, city_code, owner_index, member_indexes, session_titles in DEMO_COMMUNITIES:
+        city = db.get(GeoCity, city_code)
+        owner = players[owner_index]
+        community = Community(
+            name=name,
+            slug=slugify(name),
+            description="Demonstration community with sample members.",
+            region_code=city.region_code,
+            province_code=city.province_code,
+            city_code=city.code,
+            owner_user_id=owner.id,
+            is_demo=True,
+        )
+        community.sports = [db.get(Sport, sport_id) for sport_id in sport_ids]
+        db.add(community)
+        db.flush()
+        db.add(CommunityMember(community_id=community.id, user_id=owner.id, role="owner", joined_at=now - dt.timedelta(days=200)))
+        db.add_all(
+            CommunityMember(community_id=community.id, user_id=players[index].id, joined_at=now - dt.timedelta(days=150 - index))
+            for index in member_indexes
+        )
+        for session in db.scalars(select(PlaySession).where(PlaySession.title.in_(session_titles), PlaySession.is_demo.is_(True))).all():
+            session.community_id = community.id
+    rally = db.scalar(select(Community).where(Community.name == "Rally Community"))
+    db.add(CommunityMember(community_id=rally.id, user_id=me.id, joined_at=now - dt.timedelta(days=120)))
+
+    hoopers = db.scalar(select(Community).where(Community.name == "Demo Malolos Hoopers"))
+    blue = Team(
+        name="Demo Hoopers Blue",
+        sport_id="basketball",
+        community_id=hoopers.id,
+        captain_user_id=players[3].id,
+        city_code="031410000",
+        is_demo=True,
+    )
+    pairs = Team(name="Demo Rally Pair", sport_id="pickleball", captain_user_id=players[0].id, city_code="137404000", is_demo=True)
+    db.add_all([blue, pairs])
+    db.flush()
+    db.add(TeamMember(team_id=blue.id, user_id=players[3].id, role="captain"))
+    db.add_all(TeamMember(team_id=blue.id, user_id=players[index].id) for index in (4, 5, 6, 7))
+    db.add(TeamMember(team_id=pairs.id, user_id=players[0].id, role="captain"))
+    db.add(TeamMember(team_id=pairs.id, user_id=me.id))
+    db.flush()
+
+
+def _demo_match(db: Session, sport_id: str, when: dt.datetime, side_one: list[User], side_two: list[User], games: list[list[int]]) -> None:
+    won = [sum(first > second for first, second in games), sum(second > first for first, second in games)]
+    match = Match(
+        sport_id=sport_id,
+        court_label="Court 1",
+        status="completed",
+        score={"games": games, "totals": won},
+        winner_side=1 if won[0] > won[1] else 2,
+        started_at=when - dt.timedelta(minutes=35),
+        completed_at=when,
+        recorded_by_user_id=side_one[0].id,
+        is_demo=True,
+    )
+    db.add(match)
+    db.flush()
+    db.add_all(MatchPlayer(match_id=match.id, user_id=user.id, side=1) for user in side_one)
+    db.add_all(MatchPlayer(match_id=match.id, user_id=user.id, side=2) for user in side_two)
+
+
+def seed_demo_records(db: Session, me: User, players: list[User], *, now: dt.datetime) -> None:
+    """Sample results for the demo player so the record screens have something to show. All flagged as demo."""
+    winning = [[[11, 7], [11, 9]], [[11, 8], [9, 11], [11, 6]], [[11, 5], [11, 4]]]
+    losing = [[[9, 11], [8, 11]], [[11, 9], [7, 11], [9, 11]]]
+    total = len(DEMO_PICKLEBALL_FORM)
+    for index, outcome in enumerate(DEMO_PICKLEBALL_FORM):
+        when = now - dt.timedelta(days=(total - index) * 6, hours=3)
+        partner = players[0] if index % 4 else players[2]
+        opponents = [players[3 + index % 3], players[6 + index % 3]]
+        games = winning[index % len(winning)] if outcome == "W" else losing[index % len(losing)]
+        _demo_match(db, "pickleball", when, [me, partner], opponents, games)
+
+    shuttle_win, shuttle_loss = [[21, 17], [21, 19]], [[18, 21], [21, 19], [17, 21]]
+    for index, outcome in enumerate(DEMO_BADMINTON_FORM):
+        when = now - dt.timedelta(days=(len(DEMO_BADMINTON_FORM) - index) * 9, hours=5)
+        _demo_match(db, "badminton", when, [me, players[1]], [players[4], players[5]], shuttle_win if outcome == "W" else shuttle_loss)
+
+    runs = [(5.0, 31.0), (8.2, 49.5), (10.0, 58.0), (6.4, 38.5), (21.1, 131.0)]
+    db.add_all(
+        ActivityLog(
+            user_id=me.id,
+            sport_id="running",
+            occurred_at=now - dt.timedelta(days=7 * (len(runs) - index), hours=6),
+            metrics={"distance_km": distance, "duration_min": minutes},
+            note="Demo run",
+            is_demo=True,
+        )
+        for index, (distance, minutes) in enumerate(runs)
+    )
+    db.add_all(
+        ActivityLog(
+            user_id=me.id,
+            sport_id="bowling",
+            occurred_at=now - dt.timedelta(days=20, minutes=-25 * index),
+            metrics={"score": score},
+            note="Demo game",
+            is_demo=True,
+        )
+        for index, score in enumerate([132, 148, 171, 156])
+    )
+    db.flush()

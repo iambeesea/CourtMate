@@ -1,17 +1,20 @@
 import { Compass } from 'lucide-react'
-import { Link, Route, Routes, useLocation } from 'react-router'
+import { Link, Navigate, Route, Routes, useLocation } from 'react-router'
 import { useEffect } from 'react'
 import { AuthDialog } from './components/AuthDialog'
 import { LocationPicker } from './components/LocationPicker'
 import { Shell } from './components/Shell'
 import { EmptyState } from './components/StateViews'
 import { Bookings } from './pages/Bookings'
+import { Communities } from './pages/Communities'
+import { CommunityPage } from './pages/CommunityPage'
 import { Explore } from './pages/Explore'
 import { HostSession } from './pages/HostSession'
-import { LegacyRecord } from './pages/LegacyPages'
+import { Notifications } from './pages/Notifications'
 import { Play } from './pages/Play'
 import { Profile } from './pages/Profile'
 import { SessionPage } from './pages/SessionPage'
+import { TeamPage } from './pages/TeamPage'
 import { Venue } from './pages/Venue'
 import { useAuth } from './state/auth'
 import { usePlace } from './state/place'
@@ -58,7 +61,11 @@ export default function App() {
         <Route path="/sessions/:id" element={<SessionPage />} />
         <Route path="/host" element={<HostSession />} />
         <Route path="/play" element={<Play />} />
-        <Route path="/record" element={<LegacyRecord />} />
+        <Route path="/communities" element={<Communities />} />
+        <Route path="/communities/:id" element={<CommunityPage />} />
+        <Route path="/teams/:id" element={<TeamPage />} />
+        <Route path="/notifications" element={<Notifications />} />
+        <Route path="/record" element={<Navigate to="/profile" replace />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

@@ -1605,3 +1605,273 @@ a.session-title-row {
     display: none;
   }
 }
+
+/* --- communities, records, notifications ------------------------------------ */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.toolbar .segmented {
+  margin: 0;
+}
+.community-strip {
+  grid-template-columns: 70px 1fr auto;
+}
+.community-cta {
+  background: var(--navy);
+  color: #fff;
+  border-radius: 9px;
+  padding: 11px 14px;
+  font-size: 13px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.community-sports {
+  margin-top: 14px;
+}
+.venue-header .action-bar,
+.team-actions {
+  margin-top: 18px;
+}
+.bell-button {
+  position: relative;
+  width: 39px;
+  height: 39px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: #fff;
+  place-items: center;
+}
+.bell-button span {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  background: var(--lime);
+  color: var(--navy);
+  font-size: 10px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  padding: 0 4px;
+  border: 2px solid #fff;
+}
+.link-row small {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.link-row.unread {
+  border-color: var(--navy);
+  background: var(--lime-soft);
+}
+.link-row svg {
+  flex: none;
+}
+
+.stats-page .section-heading {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.share-button {
+  font-size: 13px;
+  min-height: 36px;
+}
+.rating-ring strong {
+  font-size: 42px;
+}
+.rating-ring span,
+.rating-ring small {
+  font-size: 10px;
+}
+.record-copy p {
+  font-size: 14px;
+}
+.record-copy .eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.form-row > span {
+  font-size: 10px;
+}
+.form-row i {
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
+}
+.stat-grid {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+.stat-card strong em {
+  font: 700 13px "DM Sans";
+  font-style: normal;
+  color: var(--muted);
+}
+.stat-card span {
+  font-size: 13px;
+  margin: 3px 0 8px;
+}
+.stat-card small {
+  font-size: 12px;
+}
+.bar-chart {
+  height: 170px;
+}
+.bar-chart em {
+  font: 800 12px "Manrope";
+  font-style: normal;
+  min-height: 16px;
+}
+.bar-chart small {
+  font-size: 10px;
+}
+.achievement-card p,
+.achievement-card small {
+  font-size: 13px;
+}
+.partner-list {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+  text-align: left;
+}
+.partner-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.partner-list strong,
+.partner-list small {
+  display: block;
+}
+.partner-list strong {
+  font-size: 14px;
+}
+.history-list {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  padding: 4px 16px;
+}
+.history-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.history-row:last-child {
+  border-bottom: 0;
+}
+.history-row strong {
+  font-size: 14px;
+  display: block;
+}
+.history-row strong span {
+  color: var(--muted);
+  font-weight: 500;
+}
+.history-row small {
+  font-size: 12px;
+  color: var(--muted);
+}
+.history-row b {
+  font: 800 14px "Manrope";
+  white-space: nowrap;
+}
+.result-chip {
+  font-style: normal;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 800;
+  background: var(--gray);
+}
+.result-W {
+  background: var(--lime);
+}
+.badge-row {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+.badge-row strong,
+.badge-row small {
+  display: block;
+}
+.badge-row strong {
+  font-size: 14px;
+}
+.badge-row small {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.badge-row span {
+  flex: none;
+}
+.story-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 24px;
+  align-items: center;
+}
+.story-card > span:not(.story-brand) {
+  font-size: 8px;
+}
+.story-card > small {
+  font-size: 7px;
+}
+.story-actions p {
+  font-size: 14px;
+}
+.story-actions button {
+  font-size: 14px;
+  min-height: 44px;
+}
+
+@media (max-width: 680px) {
+  .community-strip {
+    grid-template-columns: 50px 1fr;
+  }
+  .community-cta {
+    grid-column: 2;
+    justify-self: start;
+  }
+  .story-layout {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+  .story-layout .story-card {
+    width: 170px;
+  }
+  .story-actions button {
+    margin-inline: auto;
+  }
+  .achievement-card {
+    display: block;
+  }
+  .mobile-nav a {
+    min-width: 0;
+    flex: 1;
+    font-size: 10px;
+  }
+}

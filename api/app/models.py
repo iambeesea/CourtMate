@@ -386,8 +386,13 @@ class Community(Base):
     created_at: Mapped[dt.datetime] = mapped_column(UTCDateTime, default=utcnow)
 
     city: Mapped[GeoCity | None] = relationship(lazy="joined")
+    region: Mapped[GeoRegion | None] = relationship(lazy="joined")
     sports: Mapped[list[Sport]] = relationship(secondary="community_sports", order_by="Sport.sort_order", lazy="selectin")
     members: Mapped[list["CommunityMember"]] = relationship(cascade="all, delete-orphan", lazy="selectin")
+
+    @property
+    def region_name(self) -> str:
+        return self.region.name if self.region else ""
 
 
 class CommunitySport(Base):
@@ -425,6 +430,8 @@ class Team(Base):
 
     sport: Mapped[Sport] = relationship(lazy="joined")
     city: Mapped[GeoCity | None] = relationship(lazy="joined")
+    community: Mapped[Community | None] = relationship(lazy="joined")
+    captain: Mapped[User] = relationship(lazy="joined")
     members: Mapped[list["TeamMember"]] = relationship(cascade="all, delete-orphan", lazy="selectin")
 
 

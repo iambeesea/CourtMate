@@ -4,6 +4,31 @@ All notable changes to CourtMate are recorded here. Dates are in Philippine time
 
 ## [Unreleased] — `feat/courtmate-multisport`
 
+### Phase 4 — Communities and statistics (2026-10-08)
+
+Added
+
+- Communities and teams: `/api/v1/communities`, `/api/v1/teams`, with membership, roles and discovery filters.
+- Per-sport player records computed from recorded matches, logged activities and checked-in attendance: `/api/v1/players/me/records`, `stats`, `matches`, `activities`, `achievements`.
+- In-app notifications: `/api/v1/notifications` and `/api/v1/notifications/read`.
+- Web: Communities tab, community and team pages, the player record inside Profile, activity logging, notification bell and page.
+- 25 more API tests (138 in total).
+
+Changed
+
+- Navigation is now Explore, Bookings, Play, Communities, Profile.
+- `GET /api/v1/players/me/stats` and `GET /api/v1/communities` keep their paths but return records computed from data, and the stats route requires sign-in.
+- The Instagram Story card is generated from the selected sport's record. Demo figures are labelled on the card.
+- `/record` redirects to `/profile`.
+
+Fixed
+
+- Statistics are no longer constants. Rating, "+0.18 this month", the monthly chart, badges and the streak are either computed from recorded results or not shown (audit item 7).
+
+Removed
+
+- The remaining in-memory API data and the original single-file web screens.
+
 ### Phase 3 — Open plays (2026-10-08)
 
 Added

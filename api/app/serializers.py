@@ -7,6 +7,9 @@ from sqlalchemy.orm import Session
 
 from . import schemas
 from .models import (
+    ActivityLog,
+    Community,
+    CommunityMember,
     Facility,
     FacilityStaff,
     GeoBarangay,
@@ -19,6 +22,8 @@ from .models import (
     Resource,
     SessionParticipant,
     Sport,
+    Team,
+    TeamMember,
     User,
 )
 from .services import booking
@@ -377,4 +382,84 @@ def queue(item: PlaySession, live: list[Match], viewer: User | None) -> schemas.
         resting=[participant(entry) for entry in confirmed if entry.checked_in and entry.queue_state == "idle"],
         not_checked_in=[participant(entry) for entry in confirmed if not entry.checked_in],
         can_manage=sessions_service.can_manage(item, viewer),
+    )
+
+
+# --- communities, teams, records, notifications -------------------------------
+
+
+def member(item: CommunityMember | TeamMember) -> schemas.MemberOut:
+    return schemas.MemberOut(user=public_user(item.user), role=item.role, joined_at=item.joined_at)
+
+
+def _role(members: list, viewer: User | None) -> str | None:
+    return next((item.role for item in members if viewer and item.user_id == viewer.id), None)
+
+
+def _community_fields(item: Community, viewer: User | None) -> dict:
+    return {
+        "id": item.id,
+        "name": item.name,
+        "slug": item.slug,
+        "description": item.description,
+        "city": _place(item.city),
+        "region": schemas.Place(code=item.region_code, name=item.region_name) if item.region_code else None,
+        "sports": [sport_summary(entry) for entry in item.sports],
+        "member_count": len(item.members),
+        "visibility": item.visibility,
+        "is_demo": item.is_demo,
+        "viewer_role": _role(item.members, viewer),
+    }
+
+
+def community(item: Community, viewer: User | None = None) -> schemas.CommunityOut:
+    return schemas.CommunityOut(**_community_fields(item, viewer))
+
+
+def team(item: Team, viewer: User | None = None) -> schemas.TeamOut:
+    return schemas.TeamOut(**_team_fields(item, viewer))
+
+
+def _team_fields(item: Team, viewer: User | None) -> dict:
+    captain = next((entry.user for entry in item.members if entry.user_id == item.captain_user_id), None)
+    return {
+        "id": item.id,
+        "name": item.name,
+        "sport": sport_summary(item.sport),
+        "community": schemas.SessionCommunity(id=item.community.id, name=item.community.name) if item.community else None,
+        "city": _place(item.city),
+        "description": item.description,
+        "member_count": len(item.members),
+        "captain": public_user(captain) if captain else public_user(item.captain),
+        "is_demo": item.is_demo,
+        "viewer_role": _role(item.members, viewer),
+    }
+
+
+def team_detail(item: Team, viewer: User | None = None) -> schemas.TeamDetail:
+    ordered = sorted(item.members, key=lambda entry: (entry.role != "captain", entry.joined_at))
+    return schemas.TeamDetail(**_team_fields(item, viewer), members=[member(entry) for entry in ordered])
+
+
+def community_detail(item: Community, teams: list[Team], viewer: User | None = None) -> schemas.CommunityDetail:
+    order = {"owner": 0, "admin": 1, "member": 2}
+    ordered = sorted(item.members, key=lambda entry: (order[entry.role], entry.joined_at))
+    return schemas.CommunityDetail(
+        **_community_fields(item, viewer), members=[member(entry) for entry in ordered], teams=[team(entry, viewer) for entry in teams]
+    )
+
+
+def my_match(item: Match, side: int, result: str) -> schemas.MyMatchOut:
+    return schemas.MyMatchOut(**match(item).model_dump(), result=result, my_side=side)
+
+
+def activity(item: ActivityLog) -> schemas.ActivityOut:
+    return schemas.ActivityOut(
+        id=item.id,
+        sport=sport_summary(item.sport),
+        occurred_at=item.occurred_at,
+        metrics=item.metrics,
+        source=item.source,
+        note=item.note,
+        is_demo=item.is_demo,
     )

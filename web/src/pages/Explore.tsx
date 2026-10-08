@@ -289,6 +289,9 @@ export function Explore() {
           <h3>Communities make every game better.</h3>
           <p>Meet regular partners, find skill-matched sessions, and never play alone.</p>
         </div>
+        <Link to="/communities" className="community-cta">
+          Explore communities <ArrowRight size={17} />
+        </Link>
       </section>
     </div>
   )
