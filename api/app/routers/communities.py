@@ -1,7 +1,6 @@
 from fastapi import APIRouter
 
-from ..models import Community
-from ..store import COMMUNITIES
+from ..legacy import COMMUNITIES, Community
 
 router = APIRouter(prefix="/communities", tags=["communities"])
 

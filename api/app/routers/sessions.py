@@ -1,7 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query
 
-from ..models import Session
-from ..store import get_session, list_sessions
+from ..legacy import Session, get_session, list_sessions
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 

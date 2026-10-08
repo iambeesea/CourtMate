@@ -1,7 +1,33 @@
 [project]
 name = "api"
-version = "0.1.0"
+version = "0.2.0"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi[standard]>=0.141.1",
+    "sqlalchemy>=2.0.36",
+    "alembic>=1.14",
+    "psycopg[binary]>=3.2",
+    "tzdata>=2024.1",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "ruff>=0.8",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = [
+    # Starlette's test client prefers the newer httpx2 package; httpx still works.
+    "ignore:Using `httpx` with `starlette.testclient` is deprecated",
+]
+
+[tool.ruff]
+line-length = 140
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["B008"]

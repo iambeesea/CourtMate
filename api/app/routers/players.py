@@ -1,7 +1,6 @@
 from fastapi import APIRouter
 
-from ..models import PlayerStats
-from ..store import STATS
+from ..legacy import STATS, PlayerStats
 
 router = APIRouter(prefix="/players", tags=["players"])
 

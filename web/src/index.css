@@ -1,39 +1,85 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap");
+
 :root {
-  font-family: "DM Sans", sans-serif;
+  font-family: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   color: #1f3b73;
   background: #f8f8f8;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  --ink: #1f3b73;
-  --muted: #5f6f88;
-  --line: #e8e8e8;
-  --paper: #fff;
-  --lime: #e0fe2c;
-  --lime-deep: #cdea18;
+
+  /* Brand palette */
+  --white: #ffffff;
+  --gray: #e8e8e8;
   --navy: #1f3b73;
-  --violet: #1f3b73;
+  --lime: #e0fe2c;
+
+  /* Working tokens derived from the palette */
+  --ink: var(--navy);
+  --navy-deep: #17305f;
+  --navy-soft: #eef2f9;
+  --lime-deep: #cdea18;
+  --lime-soft: #f5fdc4;
+  --muted: #5f6f88;
+  --line: var(--gray);
+  --paper: var(--white);
+  --canvas: #f8f8f8;
+  --danger: #b42318;
+  --danger-soft: #fef3f2;
+  --violet: var(--navy);
+  --radius: 14px;
+  --shadow: 0 15px 35px rgba(31, 59, 115, 0.1);
+  --nav-height: 72px;
 }
+
 * {
   box-sizing: border-box;
 }
+
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #f8f8f8;
+  background: var(--canvas);
 }
+
+body.modal-open {
+  overflow: hidden;
+}
+
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
+  color: inherit;
 }
+
 button {
   cursor: pointer;
 }
+
+a {
+  color: inherit;
+}
+
 h1,
 h2,
 h3,
 p {
   margin-top: 0;
+}
+
+:focus-visible {
+  outline: 3px solid var(--lime-deep);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
