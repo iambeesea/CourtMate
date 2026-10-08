@@ -113,3 +113,15 @@ def test_cors_origins_tolerate_trailing_slashes_and_spaces(monkeypatch):
     assert Settings().cors_origins == ["https://courtmate.example", "http://localhost:5173"]
     monkeypatch.setenv("CORS_ORIGINS", "")
     assert Settings().cors_origins == ["http://localhost:5173"]
+
+
+def test_environment_is_read_case_insensitively(monkeypatch):
+    from app.config import Settings
+
+    monkeypatch.delenv("DEMO_ADMIN_LOGIN", raising=False)
+    for value in ("Production", " PRODUCTION ", "production"):
+        monkeypatch.setenv("ENVIRONMENT", value)
+        assert Settings().environment == "production"
+        assert Settings().demo_admin_login is False
+    monkeypatch.setenv("ENVIRONMENT", "")
+    assert Settings().environment == "development"
