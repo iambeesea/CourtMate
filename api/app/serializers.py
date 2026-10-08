@@ -6,8 +6,23 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from . import schemas
-from .models import Facility, FacilityStaff, GeoBarangay, GeoCity, GeoProvince, GeoRegion, Reservation, Resource, Sport, User
+from .models import (
+    Facility,
+    FacilityStaff,
+    GeoBarangay,
+    GeoCity,
+    GeoProvince,
+    GeoRegion,
+    Match,
+    PlaySession,
+    Reservation,
+    Resource,
+    SessionParticipant,
+    Sport,
+    User,
+)
 from .services import booking
+from .services import sessions as sessions_service
 from .timeutil import minute_label, utcnow
 
 
@@ -17,7 +32,10 @@ def initials(name: str) -> str:
         return "?"
     if len(parts) == 1:
         return parts[0][:2].upper()
-    return (parts[0][0] + parts[-1][0]).upper()
+    last = parts[-1]
+    # "Player 07" reads better as "P7" than "P0".
+    tail = (last.lstrip("0") or "0")[0] if last.isdigit() else last[0]
+    return (parts[0][0] + tail).upper()
 
 
 def public_user(user: User) -> schemas.PublicUser:
@@ -214,4 +232,149 @@ def reservation(item: Reservation, *, now: dt.datetime | None = None) -> schemas
         cancelled_at=item.cancelled_at,
         cancel_reason=item.cancel_reason,
         can_cancel=active and item.end_at > now,
+    )
+
+
+# --- sessions, queues and matches --------------------------------------------
+
+
+def _waitlist_positions(session: PlaySession) -> dict[str, int]:
+    waiting = sorted((item for item in session.participants if item.status == "waitlisted"), key=lambda item: (item.joined_at, item.id))
+    return {item.id: index for index, item in enumerate(waiting, start=1)}
+
+
+def participant(item: SessionParticipant, waitlist_position: int | None = None) -> schemas.ParticipantOut:
+    return schemas.ParticipantOut(
+        id=item.id,
+        user=public_user(item.user),
+        status=item.status,
+        joined_at=item.joined_at,
+        checked_in=item.checked_in,
+        queue_state=item.queue_state,
+        games_played=item.games_played,
+        waitlist_position=waitlist_position,
+    )
+
+
+def _session_fields(session: PlaySession, viewer: User | None, distance_km: float | None) -> dict:
+    positions = _waitlist_positions(session)
+    confirmed = [item for item in session.participants if item.status == "confirmed"]
+    mine = next((item for item in session.participants if viewer and item.user_id == viewer.id), None)
+    is_host = bool(viewer and viewer.id == session.host_user_id)
+    manages = sessions_service.can_manage(session, viewer)
+    chosen_format = sessions_service.team_format(session.sport, session.team_format) if session.team_format else None
+    return {
+        "id": session.id,
+        "title": session.title,
+        "description": session.description,
+        "kind": session.kind,
+        "kind_label": sessions_service.kind_label(session.sport, session.kind),
+        "sport": sport_summary(session.sport),
+        "facility": schemas.SessionFacility(
+            id=session.facility.id, name=session.facility.name, slug=session.facility.slug, is_demo=session.facility.is_demo
+        )
+        if session.facility
+        else None,
+        "venue_name": session.venue_name,
+        "meetup_note": session.meetup_note,
+        "route_name": session.route_name,
+        "route_distance_km": session.route_distance_km,
+        "location": location(session.region, session.province, session.city, session.barangay),
+        "latitude": session.latitude,
+        "longitude": session.longitude,
+        "distance_km": round(distance_km, 2) if distance_km is not None else None,
+        "start_at": session.start_at,
+        "end_at": session.end_at,
+        "timezone": session.timezone,
+        "capacity": session.capacity,
+        "min_players": session.min_players,
+        "joined": session.confirmed_count,
+        "waitlist": len(positions),
+        # Only the host sees how many requests are waiting for a decision.
+        "pending": sum(item.status == "pending" for item in session.participants) if manages else 0,
+        "spots_left": max(0, session.capacity - session.confirmed_count),
+        "skill_level": session.skill_level,
+        "team_format": session.team_format,
+        "team_format_label": chosen_format["label"] if chosen_format else "",
+        "gender_eligibility": session.gender_eligibility,
+        "fee_centavos": session.fee_centavos,
+        "join_policy": session.join_policy,
+        "queue_mode": session.queue_mode,
+        "courts_in_play": session.courts_in_play,
+        "status": session.status,
+        "cancel_reason": session.cancel_reason,
+        "host": public_user(session.host),
+        "community": schemas.SessionCommunity(id=session.community.id, name=session.community.name) if session.community else None,
+        "series_id": session.series_id,
+        "has_venue_booking": session.reservation_id is not None,
+        "is_demo": session.is_demo,
+        "players": [public_user(item.user) for item in confirmed[:8]],
+        "viewer": schemas.ViewerState(
+            status=mine.status if mine and mine.status in sessions_service.ACTIVE_STATUSES else None,
+            is_host=is_host,
+            waitlist_position=positions.get(mine.id) if mine else None,
+            checked_in=bool(mine and mine.checked_in),
+            queue_state=mine.queue_state if mine else None,
+        ),
+    }
+
+
+def session(item: PlaySession, viewer: User | None = None, distance_km: float | None = None) -> schemas.SessionOut:
+    return schemas.SessionOut(**_session_fields(item, viewer, distance_km))
+
+
+def session_detail(item: PlaySession, viewer: User | None = None) -> schemas.SessionDetail:
+    positions = _waitlist_positions(item)
+    manages = sessions_service.can_manage(item, viewer)
+    visible = {"confirmed", "waitlisted", "pending"} if manages else {"confirmed", "waitlisted"}
+    order = {"confirmed": 0, "waitlisted": 1, "pending": 2}
+    people = sorted(
+        (entry for entry in item.participants if entry.status in visible), key=lambda entry: (order[entry.status], entry.joined_at)
+    )
+    return schemas.SessionDetail(
+        **_session_fields(item, viewer, None), participants=[participant(entry, positions.get(entry.id)) for entry in people]
+    )
+
+
+def match(item: Match) -> schemas.MatchOut:
+    return schemas.MatchOut(
+        id=item.id,
+        sport=sport_summary(item.sport),
+        session_id=item.session_id,
+        court_label=item.court_label,
+        status=item.status,
+        score=item.score,
+        winner_side=item.winner_side,
+        is_draw=item.is_draw,
+        started_at=item.started_at,
+        completed_at=item.completed_at,
+        players=[
+            schemas.MatchPlayerOut(user=public_user(player.user), side=player.side, stats=player.stats or {})
+            for player in sorted(item.players, key=lambda player: (player.side, player.user.display_name))
+        ],
+        is_demo=item.is_demo,
+    )
+
+
+def queue(item: PlaySession, live: list[Match], viewer: User | None) -> schemas.QueueOut:
+    by_court = {entry.court_label: entry for entry in live}
+    confirmed = [entry for entry in item.participants if entry.status == "confirmed"]
+    waiting = sorted((entry for entry in confirmed if entry.queue_state == "waiting"), key=lambda entry: (entry.queued_at, entry.id))
+    return schemas.QueueOut(
+        session_id=item.id,
+        mode=item.queue_mode,
+        status=item.status,
+        players_per_match=sessions_service.players_per_match(item),
+        courts=[
+            schemas.CourtOut(
+                number=number,
+                label=sessions_service.court_label(number),
+                match=match(by_court[sessions_service.court_label(number)]) if sessions_service.court_label(number) in by_court else None,
+            )
+            for number in range(1, item.courts_in_play + 1)
+        ],
+        waiting=[participant(entry) for entry in waiting],
+        resting=[participant(entry) for entry in confirmed if entry.checked_in and entry.queue_state == "idle"],
+        not_checked_in=[participant(entry) for entry in confirmed if not entry.checked_in],
+        can_manage=sessions_service.can_manage(item, viewer),
     )

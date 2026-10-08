@@ -15,6 +15,7 @@ from pathlib import Path
 from sqlalchemy import func, insert, select
 from sqlalchemy.orm import Session
 
+from . import schemas
 from .models import (
     Facility,
     FacilityHours,
@@ -23,6 +24,7 @@ from .models import (
     GeoCity,
     GeoProvince,
     GeoRegion,
+    PlaySession,
     Resource,
     ResourceType,
     Sport,
@@ -31,6 +33,7 @@ from .models import (
     UserSport,
 )
 from .services import booking
+from .services import sessions as sessions_service
 from .sports_catalog import CATEGORIES, RESOURCE_TYPES, SPORTS
 from .timeutil import at_local_minute, utcnow, zone
 
@@ -372,5 +375,238 @@ def seed_demo(db: Session, *, now: dt.datetime | None = None) -> bool:
 
     facilities = [_demo_facility(db, definition, operator) for definition in DEMO_FACILITIES]
     _demo_bookings(db, facilities[0], players, operator, now)
+    seed_demo_sessions(db, now=now)
+    db.commit()
+    return True
+
+
+# Each tuple: title, sport, kind, facility name (or None), day offset, start minute, minutes, capacity, players joined, extras.
+DEMO_SESSIONS = [
+    (
+        "Saturday Sunrise Rally",
+        "pickleball",
+        "open_play",
+        "Demo Rally Center",
+        1,
+        7 * 60,
+        120,
+        12,
+        7,
+        {"skill_level": "3.0", "team_format": "doubles", "fee": 220, "queue_mode": "rotation", "courts": 2},
+    ),
+    (
+        "After Work Smash",
+        "badminton",
+        "open_play",
+        "Demo Rally Center",
+        2,
+        18 * 60 + 30,
+        150,
+        8,
+        9,
+        {"skill_level": "Intermediate", "team_format": "doubles", "fee": 180, "queue_mode": "rotation", "courts": 2},
+    ),
+    (
+        "Midweek Dink and Drink",
+        "pickleball",
+        "open_play",
+        "Demo Rally Center",
+        4,
+        17 * 60 + 30,
+        120,
+        12,
+        3,
+        {"team_format": "doubles", "fee": 250},
+    ),
+    (
+        "Saturday Hoops Run",
+        "basketball",
+        "pickup_game",
+        "Demo Hoops and Spikes Arena",
+        3,
+        18 * 60,
+        120,
+        15,
+        6,
+        {"team_format": "5v5", "fee": 100, "queue_mode": "winner_stays", "join_policy": "approval"},
+    ),
+    (
+        "Volleyball Night",
+        "volleyball",
+        "pickup_game",
+        "Demo Hoops and Spikes Arena",
+        5,
+        19 * 60,
+        120,
+        18,
+        5,
+        {"team_format": "6v6", "fee": 80},
+    ),
+    ("Friday Bowling Social", "bowling", "open_play", "Demo Strike and Cue Lounge", 2, 19 * 60, 120, 12, 4, {"fee": 350}),
+    (
+        "Beginner Yoga Flow",
+        "yoga",
+        "class",
+        "Demo Aquatic and Fitness Club",
+        1,
+        6 * 60 + 30,
+        60,
+        20,
+        5,
+        {"skill_level": "Beginner", "fee": 250},
+    ),
+    ("Open Mat", "bjj", "sparring", "Demo Aquatic and Fitness Club", 3, 19 * 60, 90, 16, 4, {"fee": 200}),
+    ("Lap Swim Squad", "swimming", "open_play", "Demo Aquatic and Fitness Club", 2, 6 * 60, 60, 12, 3, {"fee": 150}),
+    (
+        "Seven-a-side Kickabout",
+        "football",
+        "pickup_game",
+        "Demo Football and Tennis Park",
+        4,
+        18 * 60,
+        90,
+        16,
+        6,
+        {"team_format": "7v7", "fee": 120},
+    ),
+    ("Morning Tee Time", "golf", "tee_time", "Demo Greens Golf Course", 6, 6 * 60, 240, 4, 2, {"fee": 1500}),
+    (
+        "Sunday Long Run",
+        "running",
+        "group_activity",
+        None,
+        3,
+        5 * 60 + 30,
+        90,
+        40,
+        6,
+        {
+            "city": "137404000",
+            "venue": "Demo meet-up point, Quezon City",
+            "route": "Demo 10 km loop",
+            "km": 10.0,
+            "lat": 14.6510,
+            "lng": 121.0493,
+        },
+    ),
+    (
+        "Weekend Gravel Ride",
+        "cycling",
+        "group_activity",
+        None,
+        5,
+        5 * 60,
+        180,
+        25,
+        4,
+        {
+            "city": "043428000",
+            "venue": "Demo meet-up point, Santa Rosa",
+            "route": "Demo 45 km out-and-back",
+            "km": 45.0,
+            "lat": 14.3122,
+            "lng": 121.1114,
+        },
+    ),
+]
+
+
+def _demo_session(
+    db: Session, host: User, players: list[User], facilities: dict[str, Facility], row: tuple, now: dt.datetime
+) -> PlaySession:
+    title, sport_id, kind, facility_name, day_offset, start_minute, minutes, capacity, joined, extra = row
+    facility = facilities.get(facility_name) if facility_name else None
+    tz = zone(facility.timezone if facility else None)
+    start = at_local_minute(now.astimezone(tz).date() + dt.timedelta(days=day_offset), start_minute, tz)
+    payload = schemas.SessionIn(
+        title=title,
+        description="Demonstration session with sample players.",
+        sport_id=sport_id,
+        kind=kind,
+        start_at=start,
+        end_at=start + dt.timedelta(minutes=minutes),
+        capacity=capacity,
+        skill_level=extra.get("skill_level", "All levels"),
+        team_format=extra.get("team_format", ""),
+        fee_centavos=extra.get("fee", 0) * 100,
+        join_policy=extra.get("join_policy", "open"),
+        queue_mode=extra.get("queue_mode", "none"),
+        courts_in_play=extra.get("courts", 1),
+        facility_id=facility.id if facility else None,
+        city_code=extra.get("city"),
+        venue_name=extra.get("venue", ""),
+        route_name=extra.get("route", ""),
+        route_distance_km=extra.get("km"),
+        latitude=extra.get("lat"),
+        longitude=extra.get("lng"),
+    )
+    [session] = sessions_service.create(db, host, payload, now=now)
+    session.is_demo = True
+    session.join_policy = "open"  # let the sample players in, then restore the real policy below
+    for offset, player in enumerate(player for player in players if player.id != host.id):
+        if offset >= joined - 1:
+            break
+        sessions_service.join(db, session, player, now=now - dt.timedelta(hours=1) + dt.timedelta(seconds=offset))
+    session.join_policy = extra.get("join_policy", "open")
+    return session
+
+
+def _demo_live_session(db: Session, host: User, players: list[User], facility: Facility, me: User, now: dt.datetime) -> None:
+    """A session that is already under way, so the Play tab has a working queue to show."""
+    start = now.replace(minute=0, second=0, microsecond=0) + dt.timedelta(hours=1)
+    payload = schemas.SessionIn(
+        title="Demo Live Queue",
+        description="A demonstration session in progress. Check in to join the queue.",
+        sport_id="badminton",
+        kind="open_play",
+        start_at=start,
+        end_at=start + dt.timedelta(hours=3),
+        capacity=12,
+        skill_level="All levels",
+        team_format="doubles",
+        queue_mode="rotation",
+        courts_in_play=2,
+        facility_id=facility.id,
+    )
+    [session] = sessions_service.create(db, host, payload, now=now)
+    session.is_demo = True
+    for offset, player in enumerate([*[item for item in players if item.id != host.id][:6], me]):
+        sessions_service.join(db, session, player, now=now - dt.timedelta(hours=1) + dt.timedelta(seconds=offset))
+    sessions_service.start_session(db, session, now=now)
+    db.flush()
+    db.refresh(session)
+    for offset, participant in enumerate(item for item in session.participants if item.user_id != me.id):
+        sessions_service.check_in(db, session, participant, now=now - dt.timedelta(minutes=30) + dt.timedelta(seconds=offset))
+    db.flush()
+    sessions_service.call_next(db, session, host, now=now)
+
+
+def seed_demo_sessions(db: Session, *, now: dt.datetime | None = None) -> None:
+    now = now or utcnow()
+    me = db.scalar(select(User).where(User.email == DEMO_PLAYER_EMAIL))
+    players = list(db.scalars(select(User).where(User.email.like("demo.p0%@courtmate.demo")).order_by(User.email)).all())
+    facilities = {facility.name: facility for facility in db.scalars(select(Facility).where(Facility.is_demo.is_(True))).all()}
+    for index, row in enumerate(DEMO_SESSIONS):
+        _demo_session(db, players[index % len(players)], players, facilities, row, now)
+    _demo_live_session(db, players[1], players, facilities["Demo Rally Center"], me, now)
+    db.flush()
+
+
+def refresh_demo_sessions(db: Session, *, now: dt.datetime | None = None) -> bool:
+    """On a database that outlives its demo sessions, add a fresh set so the demo never looks stale."""
+    now = now or utcnow()
+    if not db.scalar(select(User.id).where(User.email == DEMO_PLAYER_EMAIL)):
+        return False
+    upcoming = db.scalar(
+        select(func.count())
+        .select_from(PlaySession)
+        .where(PlaySession.is_demo.is_(True), PlaySession.status == "scheduled", PlaySession.end_at > now)
+    )
+    if upcoming:
+        return False
+    # Close out a demo session left "live" from an earlier run.
+    for stale in db.scalars(select(PlaySession).where(PlaySession.is_demo.is_(True), PlaySession.status == "live")).all():
+        sessions_service.complete_session(db, stale, now=now)
+    seed_demo_sessions(db, now=now)
     db.commit()
     return True

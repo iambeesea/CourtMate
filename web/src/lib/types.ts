@@ -247,3 +247,142 @@ export interface AreaParams {
   lng?: number
   radiusKm?: number
 }
+
+export type ParticipantStatus = 'confirmed' | 'waitlisted' | 'pending'
+export type SessionStatus = 'scheduled' | 'live' | 'completed' | 'cancelled'
+
+export interface ViewerState {
+  status: ParticipantStatus | null
+  isHost: boolean
+  waitlistPosition: number | null
+  checkedIn: boolean
+  queueState: 'idle' | 'waiting' | 'playing' | null
+}
+
+export interface Session {
+  id: string
+  title: string
+  description: string
+  kind: SessionKind
+  kindLabel: string
+  sport: SportSummary
+  facility: { id: string; name: string; slug: string; isDemo: boolean } | null
+  venueName: string
+  meetupNote: string
+  routeName: string
+  routeDistanceKm: number | null
+  location: LocationInfo
+  latitude: number | null
+  longitude: number | null
+  distanceKm: number | null
+  startAt: string
+  endAt: string
+  timezone: string
+  capacity: number
+  minPlayers: number
+  joined: number
+  waitlist: number
+  pending: number
+  spotsLeft: number
+  skillLevel: string
+  teamFormat: string
+  teamFormatLabel: string
+  genderEligibility: 'open' | 'women' | 'men' | 'mixed'
+  feeCentavos: number
+  joinPolicy: 'open' | 'approval'
+  queueMode: QueueMode
+  courtsInPlay: number
+  status: SessionStatus
+  cancelReason: string
+  host: PublicUser
+  community: { id: string; name: string } | null
+  seriesId: string | null
+  hasVenueBooking: boolean
+  isDemo: boolean
+  players: PublicUser[]
+  viewer: ViewerState
+}
+
+export interface Participant {
+  id: string
+  user: PublicUser
+  status: ParticipantStatus
+  joinedAt: string
+  checkedIn: boolean
+  queueState: 'idle' | 'waiting' | 'playing'
+  gamesPlayed: number
+  waitlistPosition: number | null
+}
+
+export interface SessionDetail extends Session {
+  participants: Participant[]
+}
+
+export interface MatchPlayer {
+  user: PublicUser
+  side: 1 | 2
+  stats: Record<string, number>
+}
+
+export interface Match {
+  id: string
+  sport: SportSummary
+  sessionId: string | null
+  courtLabel: string
+  status: 'in_progress' | 'completed' | 'void'
+  score: { games?: number[][]; totals?: number[] } | null
+  winnerSide: 1 | 2 | null
+  isDraw: boolean
+  startedAt: string
+  completedAt: string | null
+  players: MatchPlayer[]
+  isDemo: boolean
+}
+
+export interface Queue {
+  sessionId: string
+  mode: QueueMode
+  status: SessionStatus
+  playersPerMatch: number
+  courts: Array<{ number: number; label: string; match: Match | null }>
+  waiting: Participant[]
+  resting: Participant[]
+  notCheckedIn: Participant[]
+  canManage: boolean
+}
+
+export interface SessionDraft {
+  title: string
+  description: string
+  sportId: string
+  kind: SessionKind
+  startAt: string
+  endAt: string
+  capacity: number
+  minPlayers: number
+  skillLevel: string
+  teamFormat: string
+  genderEligibility: 'open' | 'women' | 'men' | 'mixed'
+  feeCentavos: number
+  joinPolicy: 'open' | 'approval'
+  queueMode: QueueMode
+  courtsInPlay: number
+  hostPlays: boolean
+  facilityId?: string
+  resourceId?: string
+  cityCode?: string
+  barangayCode?: string
+  venueName?: string
+  meetupNote: string
+  routeName?: string
+  routeDistanceKm?: number
+  repeatWeeks: number
+}
+
+export interface MatchResult {
+  games?: number[][]
+  totals?: [number, number]
+  winner?: 1 | 2
+  draw?: boolean
+  playerStats?: Record<string, Record<string, number>>
+}

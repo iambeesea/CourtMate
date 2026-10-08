@@ -1,4 +1,4 @@
-import { CalendarCheck, ChevronDown, CircleUserRound, Compass, LogIn, MapPin, Zap } from 'lucide-react'
+import { ArrowRight, CalendarCheck, ChevronDown, CircleUserRound, Compass, LogIn, MapPin, Plus, Sparkles, Zap } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link, NavLink } from 'react-router'
 import { useAuth } from '../state/auth'
@@ -37,6 +37,16 @@ function Sidebar() {
           </NavLink>
         ))}
       </nav>
+      <div className="sidebar-callout">
+        <span>
+          <Sparkles size={17} />
+        </span>
+        <strong>Host an open play</strong>
+        <p>Bring your community together and manage every queue.</p>
+        <Link to="/host">
+          Create session <ArrowRight size={15} />
+        </Link>
+      </div>
       {user ? (
         <Link to="/profile" className="sidebar-user">
           <Avatar user={user} size={36} />
@@ -72,6 +82,9 @@ function Topbar() {
         <MapPin size={16} /> <span>{placeLabel(place)}</span> <ChevronDown size={15} />
       </button>
       <div className="topbar-actions">
+        <Link to="/host" className="host-button">
+          <Plus size={17} /> Host a session
+        </Link>
         {user ? (
           <Link to="/profile" aria-label="Your profile">
             <Avatar user={user} />

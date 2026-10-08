@@ -1,23 +1,38 @@
-import { ArrowRight, Building2, List, Map as MapIcon, MapPin, UsersRound } from 'lucide-react'
+import { ArrowRight, Building2, CalendarSearch, List, Map as MapIcon, MapPin, Plus, UsersRound } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { FacilityCard } from '../components/FacilityCard'
 import { LazyMap } from '../components/LazyMap'
 import { SportIcon } from '../components/SportIcon'
 import { EmptyState, ErrorState } from '../components/StateViews'
-import { useLegacySessions } from '../legacy/hooks'
-import { SessionCard } from '../legacy/LegacyScreens'
+import { SessionCard } from '../components/SessionCard'
 import { api } from '../lib/api'
-import { formatLongDate, placeLine, plural } from '../lib/format'
+import { addDays, dateKey, formatLongDate, manilaIso, placeLine, plural, weekdayOf } from '../lib/format'
+import type { Session } from '../lib/types'
 import { useAsync } from '../lib/useAsync'
 import { useCatalog } from '../state/catalog'
 import { placeLabel, placeParams, usePlace } from '../state/place'
-import { useToast } from '../state/toast'
+
+type When = 'any' | 'today' | 'week' | 'weekend'
+
+const WHEN_LABELS: Record<When, string> = { any: 'Any time', today: 'Today', week: 'Next 7 days', weekend: 'This weekend' }
+
+/** Start-time window for a "when" filter, as UTC instants for Manila calendar days. */
+function whenWindow(when: When): { startsAfter?: string; startsBefore?: string } {
+  const today = dateKey()
+  if (when === 'today') return { startsBefore: manilaIso(addDays(today, 1), '00:00') }
+  if (when === 'week') return { startsBefore: manilaIso(addDays(today, 7), '00:00') }
+  if (when === 'weekend') {
+    const weekday = weekdayOf(today)
+    const saturday = weekday === 6 ? addDays(today, -1) : addDays(today, 5 - weekday)
+    return { startsAfter: manilaIso(saturday, '00:00'), startsBefore: manilaIso(addDays(saturday, 2), '00:00') }
+  }
+  return {}
+}
 
 export function Explore() {
   const { sports, categories, loading: catalogLoading, error: catalogError, reload, sport: findSport } = useCatalog()
   const { place, openPicker } = usePlace()
-  const notify = useToast()
   const [params, setParams] = useSearchParams()
   const [category, setCategory] = useState('all')
   const [view, setView] = useState<'list' | 'map'>('list')
@@ -30,8 +45,18 @@ export function Explore() {
     [JSON.stringify(area), sportId],
     !sport || sport.bookingEligible,
   )
-  const legacy = useLegacySessions(notify)
-  const legacySessions = legacy.sessions.filter((session) => !sport || session.sport === sport.name)
+  const [when, setWhen] = useState<When>('any')
+  const [onlyOpen, setOnlyOpen] = useState(false)
+  const [onlyFree, setOnlyFree] = useState(false)
+  const sessions = useAsync(
+    (signal) =>
+      api.sessions({ ...area, ...whenWindow(when), sportId: sportId || undefined, hasSpots: onlyOpen || undefined, free: onlyFree || undefined, limit: 60 }, signal),
+    [JSON.stringify(area), sportId, when, onlyOpen, onlyFree],
+  )
+
+  function replaceSession(updated: Session) {
+    sessions.setData((current) => current?.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)))
+  }
 
   const visibleSports = sports.filter((item) => category === 'all' || item.categoryId === category)
   const points = (facilities.data ?? [])
@@ -43,6 +68,18 @@ export function Explore() {
       title: item.name,
       subtitle: placeLine(item.location),
       href: `/venues/${item.slug}`,
+      tone: 'venue' as const,
+    }))
+  const sessionPoints = (sessions.data ?? [])
+    .filter((item) => item.latitude !== null && item.longitude !== null)
+    .map((item) => ({
+      id: `session-${item.id}`,
+      latitude: item.latitude as number,
+      longitude: item.longitude as number,
+      title: item.title,
+      subtitle: `${item.sport.name} · ${item.venueName}`,
+      href: `/sessions/${item.id}`,
+      tone: 'session' as const,
     }))
 
   function chooseSport(id: string) {
@@ -86,8 +123,8 @@ export function Explore() {
             Play. Repeat.
           </h2>
           <p>Pick a sport to see where you can play it, who is hosting, and which courts, fields, lanes or studios are open.</p>
-          <a href="#venues" className="hero-cta">
-            Find a venue <ArrowRight size={17} />
+          <a href="#sessions" className="hero-cta">
+            Find a game <ArrowRight size={17} />
           </a>
         </div>
         <div className="court-illustration" aria-hidden="true">
@@ -133,21 +170,57 @@ export function Explore() {
         </div>
       </section>
 
-      {(legacy.loading || legacySessions.length > 0) && (
-        <section className="section-block">
-          <div className="section-heading">
-            <div>
-              <span className="eyebrow">OPEN PLAY</span>
-              <h2>Open sessions</h2>
-            </div>
+      <section className="section-block" id="sessions">
+        <div className="section-heading">
+          <div>
+            <span className="eyebrow">OPEN PLAY · {placeLabel(place).toUpperCase()}</span>
+            <h2>{sport ? `${sport.name} sessions` : 'Open sessions'}</h2>
           </div>
+          <Link to={`/host${sportId ? `?sport=${sportId}` : ''}`} className="button button-primary button-small">
+            <Plus size={16} /> Host
+          </Link>
+        </div>
+        <div className="filters" aria-label="Session filters">
+          {(Object.keys(WHEN_LABELS) as When[]).map((value) => (
+            <button key={value} aria-pressed={when === value} className={when === value ? 'active' : ''} onClick={() => setWhen(value)}>
+              {WHEN_LABELS[value]}
+            </button>
+          ))}
+          <button aria-pressed={onlyOpen} className={`filter-toggle ${onlyOpen ? 'active' : ''}`} onClick={() => setOnlyOpen((value) => !value)}>
+            Has spots
+          </button>
+          <button aria-pressed={onlyFree} className={`filter-toggle ${onlyFree ? 'active' : ''}`} onClick={() => setOnlyFree((value) => !value)}>
+            Free
+          </button>
+        </div>
+        {sessions.error && !sessions.data ? (
+          <ErrorState error={sessions.error} onRetry={sessions.reload} />
+        ) : sessions.loading && !sessions.data ? (
           <div className="session-grid">
-            {legacy.loading
-              ? [1, 2, 3].map((item) => <div key={item} className="session-card skeleton" />)
-              : legacySessions.map((session) => <SessionCard key={session.id} session={session} onJoin={legacy.toggle} />)}
+            {[1, 2, 3].map((item) => (
+              <div key={item} className="session-card skeleton" />
+            ))}
           </div>
-        </section>
-      )}
+        ) : !sessions.data?.length ? (
+          <EmptyState
+            icon={<CalendarSearch size={24} />}
+            title="No sessions match"
+            action={
+              <Link to={`/host${sportId ? `?sport=${sportId}` : ''}`} className="button button-primary">
+                Host the first one
+              </Link>
+            }
+          >
+            Nobody is hosting {sport ? sport.name.toLowerCase() : 'a session'} in {placeLabel(place)} for that time yet. Try a wider area or another day.
+          </EmptyState>
+        ) : (
+          <div className={`session-grid ${sessions.loading ? 'is-refreshing' : ''}`}>
+            {sessions.data.map((session) => (
+              <SessionCard key={session.id} session={session} onChanged={replaceSession} />
+            ))}
+          </div>
+        )}
+      </section>
 
       <section className="section-block" id="venues">
         <div className="section-heading">
@@ -193,8 +266,10 @@ export function Explore() {
           </EmptyState>
         ) : view === 'map' ? (
           <>
-            <LazyMap points={points} origin={place.mode === 'nearby' ? [place.lat, place.lng] : undefined} />
-            <p className="form-hint">{plural(points.length, 'venue')} on the map. Tap a pin for details.</p>
+            <LazyMap points={[...points, ...sessionPoints]} origin={place.mode === 'nearby' ? [place.lat, place.lng] : undefined} />
+            <p className="form-hint">
+              {plural(points.length, 'venue')} (navy pins) and {plural(sessionPoints.length, 'session')} (lime pins). Tap a pin for details.
+            </p>
           </>
         ) : (
           <div className="card-grid">

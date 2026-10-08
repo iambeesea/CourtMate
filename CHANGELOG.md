@@ -4,6 +4,35 @@ All notable changes to CourtMate are recorded here. Dates are in Philippine time
 
 ## [Unreleased] — `feat/courtmate-multisport`
 
+### Phase 3 — Open plays (2026-10-08)
+
+Added
+
+- Database-backed sessions for every sport, with discovery filters and distance search.
+- Hosting: one-off or weekly sessions at a listed venue or a described meet-up point, with an optional venue reservation made in the same step.
+- Waitlists with automatic, ordered promotion and a notification to the promoted player.
+- Approval-based sessions and host controls (approve, decline, remove, check in, edit, reschedule, start, finish, cancel).
+- Live queues with `rotation` and `winner_stays` modes, court assignment, sport-specific score entry and match voiding.
+- Web: session cards and filters on Explore, session page, host form, Play tab.
+- 35 more API tests (113 in total).
+
+Changed
+
+- `GET /api/v1/sessions` and `POST /api/v1/sessions/{id}/join|leave` keep their paths but now return the multi-sport session shape, and join/leave require sign-in.
+
+Fixed
+
+- Joined state is per player instead of one flag shared by every visitor (audit item 1).
+- Leaving a full session frees the place for the first waitlisted player instead of shrinking the waitlist (audit item 2).
+- Concurrent joins can no longer exceed capacity (audit item 3).
+- Join and leave no longer appear to succeed while the API is unreachable (audit item 4).
+- "My sessions" no longer shows a session the player never joined, and the hard-coded "13 of 16 players" and "SEP" labels are gone (audit items 5 and 6).
+- "Host a session" and "Create session" now do something (part of audit item 8).
+
+Removed
+
+- The seeded in-memory session list and the web's silent fallback to bundled demo sessions.
+
 ### Phase 2 — Universal sports foundation (2026-10-08)
 
 Added

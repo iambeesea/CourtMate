@@ -7,8 +7,11 @@ import { Shell } from './components/Shell'
 import { EmptyState } from './components/StateViews'
 import { Bookings } from './pages/Bookings'
 import { Explore } from './pages/Explore'
-import { LegacyPlay, LegacyRecord } from './pages/LegacyPages'
+import { HostSession } from './pages/HostSession'
+import { LegacyRecord } from './pages/LegacyPages'
+import { Play } from './pages/Play'
 import { Profile } from './pages/Profile'
+import { SessionPage } from './pages/SessionPage'
 import { Venue } from './pages/Venue'
 import { useAuth } from './state/auth'
 import { usePlace } from './state/place'
@@ -52,7 +55,9 @@ export default function App() {
         <Route path="/" element={<Explore />} />
         <Route path="/venues/:id" element={<Venue />} />
         <Route path="/bookings" element={<Bookings />} />
-        <Route path="/play" element={<LegacyPlay />} />
+        <Route path="/sessions/:id" element={<SessionPage />} />
+        <Route path="/host" element={<HostSession />} />
+        <Route path="/play" element={<Play />} />
         <Route path="/record" element={<LegacyRecord />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="*" element={<NotFound />} />

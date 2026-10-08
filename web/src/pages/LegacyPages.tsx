@@ -1,15 +1,8 @@
-// Thin routes around the original MVP screens. Replaced by the database-backed
-// Play and Player record screens later on this branch.
+// Thin route around the original MVP player record. Replaced by the
+// database-backed record in phase 4.
 import { useState } from 'react'
-import { useLegacySessions, useLegacyStats } from '../legacy/hooks'
-import { MySessions, Stats, StoryModal } from '../legacy/LegacyScreens'
-import { useToast } from '../state/toast'
-
-export function LegacyPlay() {
-  const notify = useToast()
-  const { sessions, toggle } = useLegacySessions(notify)
-  return <MySessions sessions={sessions} onJoin={toggle} />
-}
+import { useLegacyStats } from '../legacy/hooks'
+import { Stats, StoryModal } from '../legacy/LegacyScreens'
 
 export function LegacyRecord() {
   const stats = useLegacyStats()

@@ -115,3 +115,16 @@ export function plural(count: number, singular: string, pluralForm = `${singular
 export function placeLine(location: { barangay: { name: string } | null; city: { name: string }; province: { name: string } | null }): string {
   return [location.barangay?.name, location.city.name, location.province?.name].filter(Boolean).join(', ')
 }
+
+/** The Philippines keeps UTC+8 all year, so a Manila wall-clock time maps to one fixed offset. */
+const MANILA_OFFSET = '+08:00'
+
+export function manilaIso(day: string, time: string): string {
+  return new Date(`${day}T${time}:00${MANILA_OFFSET}`).toISOString()
+}
+
+export function manilaClock(iso: string): string {
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: TIME_ZONE, hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date(iso))
+  const pick = (type: string) => parts.find((part) => part.type === type)?.value ?? '00'
+  return `${pick('hour') === '24' ? '00' : pick('hour')}:${pick('minute')}`
+}

@@ -1,12 +1,12 @@
 import { BarChart3, CircleUserRound, LogOut, MapPin, Pencil } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
+import { CityPicker } from '../components/CityPicker'
 import { Modal } from '../components/Modal'
 import { SportIcon } from '../components/SportIcon'
 import { Avatar, DemoBadge, EmptyState, Loading } from '../components/StateViews'
 import { ApiError, api } from '../lib/api'
-import type { City, Me, SportProfile } from '../lib/types'
-import { useAsync } from '../lib/useAsync'
+import type { Me, Place, SportProfile } from '../lib/types'
 import { useAuth } from '../state/auth'
 import { useCatalog } from '../state/catalog'
 import { useToast } from '../state/toast'
@@ -107,12 +107,10 @@ function EditProfile({ user, onClose }: { user: Me; onClose: () => void }) {
   const notify = useToast()
   const [displayName, setDisplayName] = useState(user.displayName)
   const [bio, setBio] = useState(user.bio)
-  const [city, setCity] = useState<Pick<City, 'code' | 'name'> | null>(user.city)
-  const [cityQuery, setCityQuery] = useState('')
+  const [city, setCity] = useState<Place | null>(user.city)
   const [profiles, setProfiles] = useState<SportProfile[]>(user.sports)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const matches = useAsync(() => api.cities({ q: cityQuery.trim() }), [cityQuery], cityQuery.trim().length >= 2)
   const chosen = new Set(profiles.map((item) => item.sportId))
 
   function toggleSport(sportId: string) {
@@ -157,29 +155,7 @@ function EditProfile({ user, onClose }: { user: Me; onClose: () => void }) {
           <span>About you</span>
           <textarea value={bio} onChange={(event) => setBio(event.target.value)} maxLength={500} rows={3} />
         </label>
-        <div className="field">
-          <span>Home city or municipality</span>
-          {city ? (
-            <div className="chip-row">
-              <span className="chip chip-static">{city.name}</span>
-              <button className="text-button" onClick={() => setCity(null)}>
-                Change
-              </button>
-            </div>
-          ) : (
-            <>
-              <input value={cityQuery} onChange={(event) => setCityQuery(event.target.value)} placeholder="Type at least two letters" />
-              <div className="chip-row">
-                {cityQuery.trim().length >= 2 &&
-                  matches.data?.slice(0, 8).map((item) => (
-                    <button key={item.code} className="chip" onClick={() => setCity(item)}>
-                      {item.name}
-                    </button>
-                  ))}
-              </div>
-            </>
-          )}
-        </div>
+        <CityPicker value={city} onChange={setCity} label="Home city or municipality" />
         <div className="field">
           <span>Sports you play</span>
           <div className="chip-row">

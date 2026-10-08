@@ -406,3 +406,210 @@ class ReservationOut(ApiModel):
     cancelled_at: dt.datetime | None
     cancel_reason: str
     can_cancel: bool
+
+
+# --- open-play sessions -------------------------------------------------------
+
+MAX_FEE_CENTAVOS = 10_000_000
+
+
+class SessionIn(ApiModel):
+    title: str = Field(min_length=3, max_length=120)
+    description: LongText = ""
+    sport_id: str
+    kind: SessionKind = "open_play"
+    start_at: AwareDatetime
+    end_at: AwareDatetime
+    capacity: int = Field(ge=1, le=1000)
+    min_players: int = Field(default=1, ge=1, le=1000)
+    skill_level: str = Field(default="All levels", max_length=40)
+    team_format: str = Field(default="", max_length=40)
+    gender_eligibility: Literal["open", "women", "men", "mixed"] = "open"
+    fee_centavos: int = Field(default=0, ge=0, le=MAX_FEE_CENTAVOS)
+    join_policy: Literal["open", "approval"] = "open"
+    queue_mode: Literal["none", "rotation", "winner_stays"] = "none"
+    courts_in_play: int = Field(default=1, ge=1, le=30)
+    host_plays: bool = True
+
+    # Where: a listed facility, or a place described by the host.
+    facility_id: str | None = None
+    resource_id: str | None = Field(default=None, description="Also reserve this resource for the session's time.")
+    city_code: str | None = None
+    barangay_code: str | None = None
+    venue_name: str = Field(default="", max_length=160)
+    meetup_note: str = Field(default="", max_length=500)
+    route_name: str = Field(default="", max_length=160)
+    route_distance_km: float | None = Field(default=None, gt=0, le=1000)
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
+
+    community_id: str | None = None
+    repeat_weeks: int = Field(default=1, ge=1, le=12)
+
+    @model_validator(mode="after")
+    def _coherent(self):
+        if self.min_players > self.capacity:
+            raise ValueError("minPlayers cannot be more than capacity")
+        if (self.latitude is None) != (self.longitude is None):
+            raise ValueError("provide both latitude and longitude, or neither")
+        if self.resource_id and not self.facility_id:
+            raise ValueError("resourceId needs facilityId")
+        return self
+
+
+class SessionPatch(ApiModel):
+    title: str | None = Field(default=None, min_length=3, max_length=120)
+    description: LongText | None = None
+    start_at: AwareDatetime | None = None
+    end_at: AwareDatetime | None = None
+    capacity: int | None = Field(default=None, ge=1, le=1000)
+    min_players: int | None = Field(default=None, ge=1, le=1000)
+    skill_level: str | None = Field(default=None, max_length=40)
+    fee_centavos: int | None = Field(default=None, ge=0, le=MAX_FEE_CENTAVOS)
+    join_policy: Literal["open", "approval"] | None = None
+    queue_mode: Literal["none", "rotation", "winner_stays"] | None = None
+    courts_in_play: int | None = Field(default=None, ge=1, le=30)
+    meetup_note: str | None = Field(default=None, max_length=500)
+
+
+class JoinIn(ApiModel):
+    team_id: str | None = None
+
+
+class SessionFacility(ApiModel):
+    id: str
+    name: str
+    slug: str
+    is_demo: bool
+
+
+class SessionCommunity(ApiModel):
+    id: str
+    name: str
+
+
+class ViewerState(ApiModel):
+    status: str | None
+    is_host: bool
+    waitlist_position: int | None
+    checked_in: bool
+    queue_state: str | None
+
+
+class SessionOut(ApiModel):
+    id: str
+    title: str
+    description: str
+    kind: str
+    kind_label: str
+    sport: SportSummary
+    facility: SessionFacility | None
+    venue_name: str
+    meetup_note: str
+    route_name: str
+    route_distance_km: float | None
+    location: LocationOut
+    latitude: float | None
+    longitude: float | None
+    distance_km: float | None = None
+    start_at: dt.datetime
+    end_at: dt.datetime
+    timezone: str
+    capacity: int
+    min_players: int
+    joined: int
+    waitlist: int
+    pending: int
+    spots_left: int
+    skill_level: str
+    team_format: str
+    team_format_label: str
+    gender_eligibility: str
+    fee_centavos: int
+    join_policy: str
+    queue_mode: str
+    courts_in_play: int
+    status: str
+    cancel_reason: str
+    host: PublicUser
+    community: SessionCommunity | None
+    series_id: str | None
+    has_venue_booking: bool
+    is_demo: bool
+    players: list[PublicUser]
+    viewer: ViewerState
+
+
+class ParticipantOut(ApiModel):
+    id: str
+    user: PublicUser
+    status: str
+    joined_at: dt.datetime
+    checked_in: bool
+    queue_state: str
+    games_played: int
+    waitlist_position: int | None = None
+
+
+class SessionDetail(SessionOut):
+    participants: list[ParticipantOut]
+
+
+# --- queues and matches -------------------------------------------------------
+
+
+class QueueStateIn(ApiModel):
+    state: Literal["waiting", "idle"]
+
+
+class NextMatchIn(ApiModel):
+    court: int | None = Field(default=None, ge=1, le=30)
+
+
+class MatchResultIn(ApiModel):
+    """Exactly one of `games`, `totals` or `winner`, matching the sport's scoring kind."""
+
+    games: list[tuple[int, int]] | None = Field(default=None, max_length=9)
+    totals: tuple[int, int] | None = None
+    winner: Literal[1, 2] | None = None
+    draw: bool = False
+    player_stats: dict[str, dict[str, int]] = {}
+
+
+class MatchPlayerOut(ApiModel):
+    user: PublicUser
+    side: int
+    stats: dict[str, int]
+
+
+class MatchOut(ApiModel):
+    id: str
+    sport: SportSummary
+    session_id: str | None
+    court_label: str
+    status: str
+    score: dict | None
+    winner_side: int | None
+    is_draw: bool
+    started_at: dt.datetime
+    completed_at: dt.datetime | None
+    players: list[MatchPlayerOut]
+    is_demo: bool
+
+
+class CourtOut(ApiModel):
+    number: int
+    label: str
+    match: MatchOut | None
+
+
+class QueueOut(ApiModel):
+    session_id: str
+    mode: str
+    status: str
+    players_per_match: int
+    courts: list[CourtOut]
+    waiting: list[ParticipantOut]
+    resting: list[ParticipantOut]
+    not_checked_in: list[ParticipantOut]
+    can_manage: bool

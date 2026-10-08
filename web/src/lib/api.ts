@@ -7,10 +7,16 @@ import type {
   FacilityAvailability,
   FacilityDetail,
   FacilitySummary,
+  Match,
+  MatchResult,
   Me,
   Province,
+  Queue,
   Region,
   Reservation,
+  Session,
+  SessionDetail,
+  SessionDraft,
   Sport,
   SportProfile,
   TokenResponse,
@@ -119,6 +125,21 @@ export interface FacilityQuery extends AreaParams {
   limit?: number
 }
 
+export interface SessionQuery extends AreaParams {
+  sportId?: string
+  category?: string
+  kind?: string
+  facilityId?: string
+  communityId?: string
+  startsAfter?: string
+  startsBefore?: string
+  skillLevel?: string
+  free?: boolean
+  hasSpots?: boolean
+  q?: string
+  limit?: number
+}
+
 export interface BookingRequest {
   resourceId: string
   startAt: string
@@ -165,4 +186,24 @@ export const api = {
   book: (payload: BookingRequest) => request<Reservation[]>(v1('/reservations'), { method: 'POST', body: payload }),
   cancelReservation: (id: string, reason: string) =>
     request<Reservation>(v1(`/reservations/${id}/cancel`), { method: 'POST', body: { reason } }),
+
+  sessions: (query: SessionQuery, signal?: AbortSignal) => request<Session[]>(v1('/sessions'), { query: { ...query }, signal }),
+  mySessions: (role: 'playing' | 'hosting', scope: 'upcoming' | 'past') => request<Session[]>(v1('/sessions/mine'), { query: { role, scope } }),
+  session: (id: string) => request<SessionDetail>(v1(`/sessions/${id}`)),
+  createSession: (draft: SessionDraft) => request<Session[]>(v1('/sessions'), { method: 'POST', body: draft }),
+  updateSession: (id: string, changes: Partial<SessionDraft>) => request<SessionDetail>(v1(`/sessions/${id}`), { method: 'PATCH', body: changes }),
+  joinSession: (id: string) => request<SessionDetail>(v1(`/sessions/${id}/join`), { method: 'POST' }),
+  leaveSession: (id: string) => request<SessionDetail>(v1(`/sessions/${id}/leave`), { method: 'POST' }),
+  sessionAction: (id: string, action: 'start' | 'complete' | 'cancel', reason = '') =>
+    request<SessionDetail>(v1(`/sessions/${id}/${action}`), { method: 'POST', body: action === 'cancel' ? { reason } : undefined }),
+  participantAction: (id: string, participantId: string, action: 'approve' | 'decline' | 'remove' | 'check-in') =>
+    request<SessionDetail>(v1(`/sessions/${id}/participants/${participantId}/${action}`), { method: 'POST' }),
+
+  queue: (id: string, signal?: AbortSignal) => request<Queue>(v1(`/sessions/${id}/queue`), { signal }),
+  checkIn: (id: string) => request<Queue>(v1(`/sessions/${id}/check-in`), { method: 'POST' }),
+  setQueueState: (id: string, state: 'waiting' | 'idle') => request<Queue>(v1(`/sessions/${id}/queue/me`), { method: 'POST', body: { state } }),
+  callNextMatch: (id: string) => request<Queue>(v1(`/sessions/${id}/queue/next`), { method: 'POST', body: {} }),
+  sessionMatches: (id: string) => request<Match[]>(v1(`/sessions/${id}/matches`)),
+  recordResult: (matchId: string, result: MatchResult) => request<Match>(v1(`/matches/${matchId}/result`), { method: 'POST', body: result }),
+  voidMatch: (matchId: string) => request<Match>(v1(`/matches/${matchId}/void`), { method: 'POST' }),
 }

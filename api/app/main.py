@@ -23,7 +23,7 @@ def bootstrap() -> None:
         run_migrations()
     with session_factory()() as db:
         seed.seed_reference(db)
-        if settings.seed_demo_data and seed.seed_demo(db):
+        if settings.seed_demo_data and (seed.seed_demo(db) or seed.refresh_demo_sessions(db)):
             logger.info("Loaded demonstration data")
 
 
