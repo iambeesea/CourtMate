@@ -1,0 +1,18 @@
+code,name,region_name,island_group
+010000000,Ilocos Region,Region I,luzon
+020000000,Cagayan Valley,Region II,luzon
+030000000,Central Luzon,Region III,luzon
+040000000,CALABARZON,Region IV-A,luzon
+050000000,Bicol Region,Region V,luzon
+060000000,Western Visayas,Region VI,visayas
+070000000,Central Visayas,Region VII,visayas
+080000000,Eastern Visayas,Region VIII,visayas
+090000000,Zamboanga Peninsula,Region IX,mindanao
+100000000,Northern Mindanao,Region X,mindanao
+110000000,Davao Region,Region XI,mindanao
+120000000,SOCCSKSARGEN,Region XII,mindanao
+130000000,NCR,National Capital Region,luzon
+140000000,CAR,Cordillera Administrative Region,luzon
+150000000,BARMM,Bangsamoro Autonomous Region in Muslim Mindanao,mindanao
+160000000,Caraga,Region XIII,mindanao
+170000000,MIMAROPA Region,MIMAROPA Region,luzon

@@ -1,0 +1,17 @@
+{
+  "source": "https://psgc.gitlab.io/api",
+  "publisher": "Philippine Statistics Authority (PSGC), via the open PSGC API",
+  "retrieved": "2026-10-08",
+  "counts": {
+    "regions": 17,
+    "provinces": 81,
+    "citiesMunicipalities": 1634,
+    "barangays": 42046
+  },
+  "sha256": {
+    "regions.csv": "dca1805f5553721e37eeaffbb067955b14831173d553cdb08c55fa3d13717adc",
+    "provinces.csv": "454739cf36c1988ea3f8f2c8ad7b049561e8e2575bcb969e7c34dd26d3a3d8c4",
+    "cities.csv": "24c38fb3603d637d8047303b5674b3dcf66734fb00a7e6399677ff4aa98cba4e",
+    "barangays.csv.gz": "63a785075b6621d975cd7b9b0bfa219827af407fa7221b1c8355b4b13b40bbd9"
+  }
+}

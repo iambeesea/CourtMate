@@ -6,11 +6,27 @@ services:
     region: singapore
     rootDir: api
     buildCommand: pip install -r requirements.txt
+    # Migrations, the sport catalog and the location data are applied on startup.
     startCommand: python -m fastapi run main.py --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     autoDeployTrigger: commit
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.7
+      - key: ENVIRONMENT
+        value: production
       - key: CORS_ORIGINS
         sync: false
+      # Leave unset to run on a SQLite file that is recreated on every deploy (demo only).
+      # Set to a PostgreSQL URL to keep accounts, bookings and results.
+      - key: DATABASE_URL
+        sync: false
+      # Clearly labelled demo venues, sessions and players, plus password-less demo sign-in
+      # for the player and venue-operator personas. Set both to "false" for a real launch.
+      - key: SEED_DEMO_DATA
+        value: "true"
+      - key: DEMO_LOGIN
+        value: "true"
+      # Requests arrive through Render's proxy; this lets rate limiting see the real client address.
+      - key: FORWARDED_ALLOW_IPS
+        value: "*"
